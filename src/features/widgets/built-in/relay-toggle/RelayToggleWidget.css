@@ -281,6 +281,86 @@
   cursor: not-allowed;
 }
 
+.relay-widget .rw-timer-chip[data-active="true"] {
+  border-color: var(--rw-accent);
+  background: var(--rw-accent);
+  color: #09090b;
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--rw-accent-glow);
+}
+
+.relay-widget .rw-header-timer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--rw-line);
+  background: var(--rw-panel);
+  color: var(--rw-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.relay-widget .rw-header-timer-btn:hover {
+  color: var(--rw-accent);
+  border-color: var(--rw-accent);
+}
+
+.relay-widget .rw-header-timer-btn[data-active="true"] {
+  color: var(--rw-accent);
+  border-color: var(--rw-accent);
+  background: var(--rw-accent-glow);
+}
+
+.relay-widget .rw-countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  margin-top: 6px;
+  animation: rw-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes rw-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* Custom Timer Modal in Widget */
+.rw-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.rw-modal-content {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 14px;
+  padding: 14px;
+  width: 100%;
+  max-width: 290px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* Empty State */
 .relay-widget .rw-empty {
   display: flex;

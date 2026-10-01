@@ -34,8 +34,9 @@ import { cn } from '@/shared/utils/cn';
 import { useToast } from '@/shared/components/Toast';
 import { useTranslation } from '@/core/i18n';
 import { formatUptime } from '@/shared/utils/tasmota-parsers';
+import { DeviceTimerTab } from './DeviceTimerTab';
 
-type TabType = 'controls' | 'network' | 'gpio' | 'settings';
+type TabType = 'controls' | 'timers' | 'network' | 'gpio' | 'settings';
 
 export const DeviceDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -661,6 +662,19 @@ export const DeviceDetailPage: React.FC = () => {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('timers')}
+                  className={cn(
+                    'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0',
+                    activeTab === 'timers'
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
+                  )}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{t('tabTimers')}</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('network')}
                   className={cn(
                     'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0',
@@ -862,6 +876,11 @@ export const DeviceDetailPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* TAB: TIMERS & SCHEDULE */}
+              {activeTab === 'timers' && (
+                <DeviceTimerTab device={activeDevice} state={activeState} />
               )}
 
               {/* TAB 2: NETWORK & TELEMETRY */}

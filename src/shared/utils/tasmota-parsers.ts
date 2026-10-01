@@ -3,7 +3,9 @@ import type {
   SensorReading,
   EnergyReading,
   WifiInfo,
-  TasmotaDevice
+  TasmotaDevice,
+  PulseTimeInfo,
+  TasmotaTimerConfig
 } from '@/features/devices/store/device-store.types';
 
 export function formatUptime(raw?: string | number): string {
@@ -186,4 +188,82 @@ export function parseStatus0(payload: Record<string, unknown>): Partial<TasmotaD
   }
 
   return result;
+}
+
+export function secondsToPulseTime(seconds: number): number {
+  if (seconds <= 0) return 0;
+  if (seconds <= 11.1) {
+    return Math.round(seconds * 10);
+  }
+  return Math.round(seconds + 100);
+}
+
+export function pulseTimeToSeconds(pulseTime: number): number {
+  if (pulseTime <= 0) return 0;
+  if (pulseTime <= 111) {
+    return pulseTime / 10;
+  }
+  return pulseTime - 100;
+}
+
+export function formatTimerDuration(seconds: number): string {
+  if (seconds <= 0) return '0s';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const remSecs = Math.round(seconds % 60);
+  if (mins < 60) {
+    return remSecs > 0 ? `${mins}m ${remSecs}s` : `${mins}m`;
+  }
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+}
+
+export function parsePulseTimeResponse(payload: Record<string, any>): Record<string, PulseTimeInfo> {
+  const result: Record<string, PulseTimeInfo> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    const match = k.match(/^PulseTime(\d*)$/i);
+    if (match && typeof v === 'object' && v !== null) {
+      const chNum = match[1] || '1';
+      const key = `POWER${chNum}`;
+      result[key] = {
+        set: Number(v.Set ?? 0),
+        remaining: Number(v.Remaining ?? 0)
+      };
+    }
+  }
+  return result;
+}
+
+export function parseTimersResponse(payload: Record<string, any>): {
+  timers: Record<string, TasmotaTimerConfig>;
+  timersEnabled: boolean;
+} {
+  const timers: Record<string, TasmotaTimerConfig> = {};
+  let timersEnabled = false;
+
+  if (typeof payload.Timers === 'string') {
+    timersEnabled = payload.Timers.toUpperCase() === 'ON';
+  } else if (typeof payload.Timers === 'boolean') {
+    timersEnabled = payload.Timers;
+  }
+
+  for (let i = 1; i <= 16; i++) {
+    const timerKey = `Timer${i}`;
+    const t = payload[timerKey];
+    if (t && typeof t === 'object') {
+      timers[timerKey] = {
+        Enable: Number(t.Enable ?? 0),
+        Mode: Number(t.Mode ?? 0),
+        Time: String(t.Time ?? '00:00'),
+        Window: Number(t.Window ?? 0),
+        Days: String(t.Days ?? '0000000'),
+        Repeat: Number(t.Repeat ?? 0),
+        Output: Number(t.Output ?? 1),
+        Action: Number(t.Action ?? 0)
+      };
+    }
+  }
+
+  return { timers, timersEnabled };
 }

@@ -1,17 +1,26 @@
 /// <reference types="vite/client" />
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { WidgetProps } from '@/features/widgets/registry/widget-types';
-import { Clock, Power, Wifi, WifiOff } from 'lucide-react';
+import { Clock, Power, Wifi, WifiOff, X } from 'lucide-react';
 import { useTranslation } from '@/core/i18n';
 import type { TranslationKey } from '@/core/i18n/translations';
+import {
+  secondsToPulseTime,
+  pulseTimeToSeconds,
+  formatTimerDuration
+} from '@/shared/utils/tasmota-parsers';
 import './RelayToggleWidget.css';
 
 const PULSE_TIME_PRESETS: Array<{ key: TranslationKey; val: number }> = [
   { key: 'timerOff', val: 0 },
+  { key: 'time10s', val: 100 },
+  { key: 'time30s', val: 130 },
   { key: 'time1m', val: 160 },
+  { key: 'time2m', val: 220 },
   { key: 'time5m', val: 400 },
   { key: 'time15m', val: 1000 },
   { key: 'time30m', val: 1900 },
+  { key: 'time1h', val: 3700 },
 ];
 
 export const RelayToggleWidget: React.FC<WidgetProps> = ({
@@ -32,6 +41,18 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
   const [toggling, setToggling] = useState<Record<string, boolean>>({});
   const [localPower, setLocalPower] = useState<Record<string, boolean>>({});
   const [pulseSending, setPulseSending] = useState<Record<string, boolean>>({});
+
+  // Custom pulse timer modal
+  const [customModalChannel, setCustomModalChannel] = useState<{
+    chNum: number;
+    key: string;
+    name: string;
+  } | null>(null);
+  const [customMins, setCustomMins] = useState(5);
+  const [customSecs, setCustomSecs] = useState(0);
+
+  // Live countdown remaining in seconds
+  const [countdownRemaining, setCountdownRemaining] = useState<Record<string, number>>({});
 
   if (!device) {
     return (
@@ -72,6 +93,60 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     const numB = parseInt(b.replace(/\D/g, '') || '1', 10);
     return numA - numB;
   });
+
+  // User configured visible channels
+  const visibleConfig = config?.settings?.visibleChannels as string[] | undefined;
+  const activePowerKeys =
+    Array.isArray(visibleConfig) && visibleConfig.length > 0
+      ? powerKeys.filter((k) => visibleConfig.includes(k))
+      : powerKeys;
+
+  const isSingleChannel = activePowerKeys.length === 1;
+  const is1x1 = colSpan === 1 && rowSpan === 1;
+
+  // Sync remaining seconds from state.pulseTimes or when relay turns ON
+  useEffect(() => {
+    if (!state?.power) return;
+    const newRemaining: Record<string, number> = {};
+    for (const key of activePowerKeys) {
+      const isRelayOn = localPower[key] !== undefined ? localPower[key] : !!state.power[key];
+      const pulse = state.pulseTimes?.[key];
+      if (isRelayOn && pulse && pulse.set > 0) {
+        const rem = pulse.remaining > 0 ? pulse.remaining : pulseTimeToSeconds(pulse.set);
+        newRemaining[key] = rem;
+      } else {
+        newRemaining[key] = 0;
+      }
+    }
+    setCountdownRemaining((prev) => ({ ...prev, ...newRemaining }));
+  }, [state?.power, state?.pulseTimes, localPower, activePowerKeys]);
+
+  // Tick countdown every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdownRemaining((prev) => {
+        let changed = false;
+        const next: Record<string, number> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (v > 0) {
+            next[k] = v - 1;
+            changed = true;
+          } else {
+            next[k] = 0;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (secs: number) => {
+    if (secs <= 0) return '00:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const handleToggle = async (key: string) => {
     if (!isOnline || toggling[key]) return;
@@ -114,15 +189,14 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     }
   };
 
-  // User configured visible channels
-  const visibleConfig = config?.settings?.visibleChannels as string[] | undefined;
-  const activePowerKeys =
-    Array.isArray(visibleConfig) && visibleConfig.length > 0
-      ? powerKeys.filter((k) => visibleConfig.includes(k))
-      : powerKeys;
-
-  const isSingleChannel = activePowerKeys.length === 1;
-  const is1x1 = colSpan === 1 && rowSpan === 1;
+  const handleCustomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customModalChannel) return;
+    const totalSecs = Math.max(0, customMins * 60 + customSecs);
+    const pulseVal = secondsToPulseTime(totalSecs);
+    await handlePulseTime(customModalChannel.chNum, pulseVal, customModalChannel.key);
+    setCustomModalChannel(null);
+  };
 
   return (
     <article
@@ -157,6 +231,33 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               )}
             </div>
           </div>
+
+          {/* Quick Timer Button for 1x1 Hero */}
+          {is1x1 && isSingleChannel && (
+            (() => {
+              const key = activePowerKeys[0];
+              const chNum = parseInt(key.replace(/\D/g, '') || '1', 10);
+              const channelName =
+                device.relayLabels?.[key] ||
+                device.friendlyNames?.[chNum - 1] ||
+                `${t('channelLabel')} ${chNum}`;
+              const pulse = state?.pulseTimes?.[key];
+              const isArmed = (pulse?.set ?? 0) > 0;
+
+              return (
+                <button
+                  type="button"
+                  className="rw-header-timer-btn"
+                  data-active={isArmed ? 'true' : 'false'}
+                  onClick={() => setCustomModalChannel({ chNum, key, name: channelName })}
+                  title={t('timeCustomTitle')}
+                  aria-label={t('timeCustomTitle')}
+                >
+                  <Clock aria-hidden="true" />
+                </button>
+              );
+            })()
+          )}
         </header>
 
         {/* Channels */}
@@ -167,6 +268,8 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               const key = activePowerKeys[0];
               const isActive = localPower[key] !== undefined ? localPower[key] : !!state?.power?.[key];
               const isBusy = !!toggling[key];
+              const remainingSecs = countdownRemaining[key] ?? 0;
+
               return (
                 <div className="rw-hero-box">
                   <button
@@ -181,6 +284,12 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     <Power aria-hidden="true" />
                     <span className="rw-btn-label">{isActive ? t('btnOn') : t('btnOff')}</span>
                   </button>
+                  {isActive && remainingSecs > 0 && (
+                    <div className="rw-countdown-badge" title={t('activeTimerRemaining')}>
+                      <Clock aria-hidden="true" />
+                      <span>{formatCountdown(remainingSecs)}</span>
+                    </div>
+                  )}
                 </div>
               );
             })()
@@ -194,6 +303,11 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                 device.relayLabels?.[key] ||
                 device.friendlyNames?.[chNum - 1] ||
                 `${t('channelLabel')} ${chNum}`;
+
+              const pulse = state?.pulseTimes?.[key];
+              const currentSet = pulse?.set ?? 0;
+              const remainingSecs = countdownRemaining[key] ?? 0;
+              const isCustomActive = currentSet > 0 && !PULSE_TIME_PRESETS.some((p) => p.val === currentSet);
 
               return (
                 <div key={key} className="rw-channel-card">
@@ -215,22 +329,45 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
 
                   {/* PulseTime auto-off timer controls */}
                   <div className="rw-pulsetime-wrap">
-                    <div className="rw-pulsetime-title">
-                      <Clock aria-hidden="true" />
-                      <span>{t('autoOffAfter')}</span>
+                    <div className="rw-pulsetime-title" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock aria-hidden="true" />
+                        <span>{t('autoOffAfter')}</span>
+                      </div>
+                      {isActive && remainingSecs > 0 && (
+                        <span className="rw-countdown-badge" style={{ marginTop: 0 }}>
+                          <Clock aria-hidden="true" />
+                          <span>{formatCountdown(remainingSecs)}</span>
+                        </span>
+                      )}
                     </div>
-                    {PULSE_TIME_PRESETS.map((preset) => (
-                      <button
-                        key={preset.val}
-                        type="button"
-                        onClick={() => handlePulseTime(chNum, preset.val, key)}
-                        disabled={!isOnline || !!pulseSending[key]}
-                        className="rw-timer-chip"
-                        aria-label={`${t('setTimerAria')} ${t(preset.key)} - ${channelName}`}
-                      >
-                        {t(preset.key)}
-                      </button>
-                    ))}
+                    {PULSE_TIME_PRESETS.map((preset) => {
+                      const isPresetActive = currentSet === preset.val;
+                      return (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => handlePulseTime(chNum, preset.val, key)}
+                          disabled={!isOnline || !!pulseSending[key]}
+                          data-active={isPresetActive ? 'true' : 'false'}
+                          className="rw-timer-chip"
+                          aria-label={`${t('setTimerAria')} ${t(preset.key)} - ${channelName}`}
+                        >
+                          {t(preset.key)}
+                        </button>
+                      );
+                    })}
+                    {/* Custom button */}
+                    <button
+                      type="button"
+                      onClick={() => setCustomModalChannel({ chNum, key, name: channelName })}
+                      disabled={!isOnline || !!pulseSending[key]}
+                      data-active={isCustomActive ? 'true' : 'false'}
+                      className="rw-timer-chip"
+                      aria-label={`${t('timeCustom')} - ${channelName}`}
+                    >
+                      {isCustomActive ? formatTimerDuration(pulseTimeToSeconds(currentSet)) : t('timeCustom')}
+                    </button>
                   </div>
                 </div>
               );
@@ -238,6 +375,118 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
           )}
         </div>
       </div>
+
+      {/* Custom Timer Dialog */}
+      {customModalChannel && (
+        <div className="rw-modal-overlay" onClick={() => setCustomModalChannel(null)}>
+          <div className="rw-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fafafa', fontSize: 13, fontWeight: 650 }}>
+                <Clock size={16} color="var(--rw-accent)" />
+                <span>{t('timeCustomTitle')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCustomModalChannel(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--rw-muted)',
+                  cursor: 'pointer',
+                  padding: 4
+                }}
+                aria-label={t('close')}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--rw-muted)' }}>
+              {customModalChannel.name}
+            </p>
+
+            <form onSubmit={handleCustomSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--rw-muted)', marginBottom: 4 }}>
+                    {t('customMinutesLabel')}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={1080}
+                    value={customMins}
+                    onChange={(e) => setCustomMins(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--rw-line)',
+                      background: 'var(--rw-surface)',
+                      color: 'var(--rw-ink)',
+                      fontSize: 13
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--rw-muted)', marginBottom: 4 }}>
+                    {t('customSecondsLabel')}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={customSecs}
+                    onChange={(e) => setCustomSecs(Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--rw-line)',
+                      background: 'var(--rw-surface)',
+                      color: 'var(--rw-ink)',
+                      fontSize: 13
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setCustomModalChannel(null)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--rw-line)',
+                    background: 'transparent',
+                    color: 'var(--rw-muted)',
+                    fontSize: 12,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'var(--rw-accent)',
+                    color: '#09090b',
+                    fontSize: 12,
+                    fontWeight: 650,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('setTimer')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </article>
   );
 };

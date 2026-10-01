@@ -37,6 +37,22 @@ export interface WifiInfo {
   downtime?: string;
 }
 
+export interface PulseTimeInfo {
+  set: number;
+  remaining: number;
+}
+
+export interface TasmotaTimerConfig {
+  Enable: number;
+  Mode: number;
+  Time: string;
+  Window?: number;
+  Days: string;
+  Repeat: number;
+  Output: number;
+  Action: number;
+}
+
 export interface DeviceState {
   online: boolean;
   lastSeen: number;
@@ -53,6 +69,10 @@ export interface DeviceState {
   switches?: Record<string, boolean>;
   adc?: Record<string, number>;
   leds?: Record<string, boolean>;
+  pulseTimes?: Record<string, PulseTimeInfo>;
+  timers?: Record<string, TasmotaTimerConfig>;
+  timersEnabled?: boolean;
+  deviceTime?: string;
 }
 
 export interface TasmotaDevice {
