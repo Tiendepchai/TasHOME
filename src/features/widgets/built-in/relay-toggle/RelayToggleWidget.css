@@ -61,6 +61,7 @@
   justify-content: space-between;
   gap: 8px;
   z-index: 2;
+  padding-right: 36px;
 }
 
 .relay-widget .rw-identity {
