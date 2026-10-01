@@ -13,7 +13,10 @@ import {
   Edit2,
   Trash2,
   SlidersHorizontal,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useToast } from '@/shared/components/Toast';
@@ -55,6 +58,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
   const [syncingTimers, setSyncingTimers] = useState(false);
   const [savingPulse, setSavingPulse] = useState<Record<string, boolean>>({});
   const [togglingGlobal, setTogglingGlobal] = useState(false);
+  const [showExpertMode, setShowExpertMode] = useState(false);
   const [filterActiveOnly, setFilterActiveOnly] = useState(false);
 
   // Custom pulse inputs per channel: { POWER1: { mins: 5, secs: 0 } }
@@ -62,12 +66,13 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
 
   // Editing timer modal state
   const [editingTimerIndex, setEditingTimerIndex] = useState<number | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [editTimerForm, setEditTimerForm] = useState<TasmotaTimerConfig>({
     Enable: 1,
     Mode: 0,
     Time: '07:00',
     Window: 0,
-    Days: '0111110',
+    Days: '1111111',
     Repeat: 1,
     Output: 1,
     Action: 1
@@ -212,7 +217,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
           }
         });
         addToast(
-          newEnable === 1 ? `Timer ${timerNum}: ${t('timerEnabled')}` : `Timer ${timerNum}: ${t('timerDisabled')}`,
+          newEnable === 1 ? `${t('timerEnabled')}` : `${t('timerDisabled')}`,
           'success'
         );
       }
@@ -221,18 +226,53 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
     }
   };
 
-  // Open Edit Modal for Timer
+  // Helper to determine if a timer has been configured
+  const isTimerConfigured = (timer?: TasmotaTimerConfig) => {
+    if (!timer) return false;
+    return timer.Enable === 1 || (timer.Time !== '00:00' && timer.Days !== '0000000');
+  };
+
+  const allTimerIndices = Array.from({ length: 16 }, (_, i) => i + 1);
+  const configuredIndices = allTimerIndices.filter((num) =>
+    isTimerConfigured(state?.timers?.[`Timer${num}`])
+  );
+
+  // Open Add Schedule Modal
+  const handleOpenAddSchedule = () => {
+    const firstFreeIndex = allTimerIndices.find(
+      (num) => !isTimerConfigured(state?.timers?.[`Timer${num}`])
+    );
+    if (!firstFreeIndex) {
+      addToast(t('maxSchedulesReached'), 'warning');
+      return;
+    }
+    setIsCreatingNew(true);
+    setEditingTimerIndex(firstFreeIndex);
+    setEditTimerForm({
+      Enable: 1,
+      Mode: 0,
+      Time: '07:00',
+      Window: 0,
+      Days: '1111111',
+      Repeat: 1,
+      Output: 1,
+      Action: 1
+    });
+  };
+
+  // Open Edit Modal for existing Timer
   const handleOpenEditTimer = (timerNum: number) => {
     const current = state?.timers?.[`Timer${timerNum}`] || {
       Enable: 1,
       Mode: 0,
       Time: '07:00',
       Window: 0,
-      Days: '0111110',
+      Days: '1111111',
       Repeat: 1,
       Output: 1,
       Action: 1
     };
+    setIsCreatingNew(false);
     setEditingTimerIndex(timerNum);
     setEditTimerForm(current);
   };
@@ -298,7 +338,9 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
           }
         });
         addToast(t('toastTimerDeleted'), 'info');
-        setEditingTimerIndex(null);
+        if (editingTimerIndex === timerNum) {
+          setEditingTimerIndex(null);
+        }
       }
     } catch {
       addToast(t('error'), 'error');
@@ -330,17 +372,16 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
 
   const formatDaysDisplay = (daysMask: string) => {
     if (!daysMask || daysMask === '0000000') return t('noTimersConfigured');
-    if (daysMask === '1111111') return 'Hàng ngày (All days)';
-    if (daysMask === '0111110') return 'T2 - T6 (Mon-Fri)';
-    if (daysMask === '1000001') return 'T7 & CN (Weekend)';
+    if (daysMask === '1111111') return t('repeatDaily');
+    if (daysMask === '0111110') return t('repeatWeekdays');
+    if (daysMask === '1000001') return t('repeatWeekends');
     const activeDays = DAY_KEYS.filter((d) => isDayActive(daysMask, d.index)).map((d) => t(d.key));
     return activeDays.join(', ');
   };
 
-  const timerList = Array.from({ length: 16 }, (_, i) => i + 1);
-  const displayedTimers = filterActiveOnly
-    ? timerList.filter((num) => (state?.timers?.[`Timer${num}`]?.Enable ?? 0) === 1)
-    : timerList;
+  const displayedTimersInExpert = filterActiveOnly
+    ? allTimerIndices.filter((num) => (state?.timers?.[`Timer${num}`]?.Enable ?? 0) === 1)
+    : allTimerIndices;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -502,53 +543,58 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
         </div>
       </div>
 
-      {/* SECTION 2: SCHEDULED TIMERS (Timer 1 - Timer 16) */}
+      {/* SECTION 2: SMART SCHEDULE VIEW */}
       <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 space-y-4">
+        {/* Header & Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                {t('scheduledTimersTitle')}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-zinc-100">
+                  {t('scheduledTimersTitle')}
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-zinc-800 text-zinc-400 border border-zinc-700">
+                  {configuredIndices.length}/16 {t('usedSchedules')}
+                </span>
+              </div>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {t('scheduledTimersDesc')}
               </p>
             </div>
           </div>
 
-          {/* Master Control: Global Timers Toggle */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setFilterActiveOnly((prev) => !prev)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterActiveOnly
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-              )}
-            >
-              {filterActiveOnly ? 'Hiện tất cả 16 lịch' : 'Chỉ xem lịch đang bật'}
-            </button>
-
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Master Switch */}
             <button
               type="button"
               onClick={handleToggleGlobalTimers}
               disabled={!isOnline || togglingGlobal}
               className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm',
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm',
                 state?.timersEnabled
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                  : 'bg-zinc-850 text-zinc-400 border-zinc-750'
               )}
+              title={state?.timersEnabled ? 'Đang bật tự động chạy' : 'Đang tạm dừng toàn bộ'}
             >
               <Power className="w-3.5 h-3.5" />
               <span>
-                {t('globalTimersToggle')}: {state?.timersEnabled ? 'BẬT (ON)' : 'TẮT (OFF)'}
+                {state?.timersEnabled ? 'Lịch trình: BẬT' : 'Lịch trình: TẮT'}
               </span>
+            </button>
+
+            {/* Add Schedule Button */}
+            <button
+              type="button"
+              onClick={handleOpenAddSchedule}
+              disabled={!isOnline || configuredIndices.length >= 16}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('addSchedule')}</span>
             </button>
           </div>
         </div>
@@ -558,153 +604,296 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-300">
             <Clock className="w-4 h-4 shrink-0" />
             <span>
-              Lưu ý: Công tắc tổng đang TẮT. Để các lịch hẹn giờ bên dưới tự động chạy, vui lòng bật "Kích hoạt toàn bộ lịch trình".
+              Lưu ý: Công tắc tổng đang TẮT. Để lịch tự động chạy, vui lòng bật "Lịch trình: BẬT".
             </span>
           </div>
         )}
 
-        {/* 16 Timers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {displayedTimers.map((timerNum) => {
-            const timer = state?.timers?.[`Timer${timerNum}`] || {
-              Enable: 0,
-              Mode: 0,
-              Time: '00:00',
-              Window: 0,
-              Days: '0000000',
-              Repeat: 0,
-              Output: 1,
-              Action: 0
-            };
-            const isEnabled = timer.Enable === 1;
-            const outputRelayName =
-              device.relayLabels?.[`POWER${timer.Output}`] ||
-              `${t('channelLabel')} ${timer.Output}`;
+        {/* Empty State */}
+        {configuredIndices.length === 0 ? (
+          <div className="py-10 px-4 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/30 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-850 border border-zinc-750 flex items-center justify-center text-zinc-500">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-300">{t('emptyScheduleTitle')}</p>
+              <p className="text-xs text-zinc-500 max-w-sm mt-1">
+                {t('emptyScheduleDesc')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddSchedule}
+              disabled={!isOnline}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 disabled:opacity-50 mt-1"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('createFirstSchedule')}</span>
+            </button>
+          </div>
+        ) : (
+          /* Smart Schedule Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {configuredIndices.map((timerNum) => {
+              const timer = state?.timers?.[`Timer${timerNum}`] || {
+                Enable: 0,
+                Mode: 0,
+                Time: '00:00',
+                Window: 0,
+                Days: '0000000',
+                Repeat: 0,
+                Output: 1,
+                Action: 0
+              };
+              const isEnabled = timer.Enable === 1;
+              const outputRelayName =
+                device.relayLabels?.[`POWER${timer.Output}`] ||
+                device.friendlyNames?.[timer.Output - 1] ||
+                `${t('channelLabel')} ${timer.Output}`;
 
-            return (
-              <div
-                key={timerNum}
-                className={cn(
-                  'p-3.5 rounded-xl border transition-all flex flex-col justify-between space-y-2.5',
-                  isEnabled
-                    ? 'bg-zinc-900/90 border-zinc-700/80 shadow-sm'
-                    : 'bg-zinc-950/40 border-zinc-850/80 opacity-75'
-                )}
-              >
-                {/* Header: Timer index & toggle switch */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
-                      Timer {timerNum}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[10px] font-bold px-1.5 py-0.2 rounded border uppercase',
-                        timer.Action === 1
-                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                          : timer.Action === 0
-                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      )}
-                    >
-                      {timer.Action === 1 ? t('actionOn') : timer.Action === 0 ? t('actionOff') : t('actionToggle')}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {/* Quick switch enable */}
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSingleTimer(timerNum, timer)}
-                      disabled={!isOnline}
-                      className={cn(
-                        'w-8 h-4 rounded-full transition-colors relative p-0.5',
-                        isEnabled ? 'bg-emerald-500' : 'bg-zinc-700'
-                      )}
-                      title={isEnabled ? t('timerEnabled') : t('timerDisabled')}
-                    >
+              return (
+                <div
+                  key={timerNum}
+                  className={cn(
+                    'p-4 rounded-xl border transition-all flex flex-col justify-between space-y-3',
+                    isEnabled
+                      ? 'bg-zinc-900/90 border-zinc-750/90 shadow-sm hover:border-zinc-700'
+                      : 'bg-zinc-950/50 border-zinc-850/80 opacity-60'
+                  )}
+                >
+                  {/* Top row: Time, Action, Master Switch */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl font-bold font-mono tracking-tight text-zinc-100">
+                        {timer.Time || '00:00'}
+                      </span>
                       <span
                         className={cn(
-                          'block w-3 h-3 rounded-full bg-white transition-transform',
-                          isEnabled ? 'translate-x-4' : 'translate-x-0'
+                          'text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase flex items-center gap-1',
+                          timer.Action === 1
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            : timer.Action === 0
+                            ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                         )}
-                      />
-                    </button>
+                      >
+                        {timer.Action === 1 ? (
+                          <>
+                            <Zap className="w-3 h-3" />
+                            <span>{t('btnOn')}</span>
+                          </>
+                        ) : timer.Action === 0 ? (
+                          <>
+                            <Power className="w-3 h-3" />
+                            <span>{t('btnOff')}</span>
+                          </>
+                        ) : (
+                          <span>{t('actionToggle')}</span>
+                        )}
+                      </span>
+                    </div>
 
-                    {/* Edit button */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditTimer(timerNum)}
-                      disabled={!isOnline}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Time & Target Relay */}
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold font-mono tracking-tight text-zinc-100">
-                      {timer.Time || '00:00'}
-                    </span>
-                    <span className="text-[10px] text-zinc-500">
-                      {timer.Repeat === 1 ? '(Lặp lại)' : '(1 lần)'}
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-zinc-400">
-                    {outputRelayName}
-                  </span>
-                </div>
-
-                {/* Days of week chips */}
-                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
-                  <div className="flex items-center gap-1">
-                    {DAY_KEYS.map((d) => {
-                      const active = isDayActive(timer.Days, d.index);
-                      return (
+                    <div className="flex items-center gap-2">
+                      {/* Toggle enable switch */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSingleTimer(timerNum, timer)}
+                        disabled={!isOnline}
+                        className={cn(
+                          'w-9 h-5 rounded-full transition-colors relative p-0.5 cursor-pointer',
+                          isEnabled ? 'bg-emerald-500' : 'bg-zinc-700'
+                        )}
+                        title={isEnabled ? t('timerEnabled') : t('timerDisabled')}
+                      >
                         <span
-                          key={d.index}
                           className={cn(
-                            'w-5 h-5 rounded flex items-center justify-center text-[10px] font-semibold transition-colors',
-                            active
-                              ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/40'
-                              : 'text-zinc-600 bg-zinc-900/60'
+                            'block w-4 h-4 rounded-full bg-white transition-transform',
+                            isEnabled ? 'translate-x-4' : 'translate-x-0'
                           )}
-                        >
-                          {t(d.key)}
-                        </span>
-                      );
-                    })}
+                        />
+                      </button>
+                    </div>
                   </div>
 
-                  <span className="text-[10px] text-zinc-500 truncate max-w-[100px]">
-                    {formatDaysDisplay(timer.Days)}
-                  </span>
+                  {/* Middle row: Relay name & Repeat rule */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-zinc-300 font-semibold">
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{outputRelayName}</span>
+                    </div>
+
+                    <span className="text-zinc-400 text-xs font-medium">
+                      {formatDaysDisplay(timer.Days)}
+                    </span>
+                  </div>
+
+                  {/* Bottom row: Day circles & Action buttons */}
+                  <div className="pt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {DAY_KEYS.map((d) => {
+                        const active = isDayActive(timer.Days, d.index);
+                        return (
+                          <span
+                            key={d.index}
+                            className={cn(
+                              'w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-semibold transition-colors',
+                              active
+                                ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                                : 'text-zinc-600 bg-zinc-900/50'
+                            )}
+                          >
+                            {t(d.key)}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditTimer(timerNum)}
+                        disabled={!isOnline}
+                        className="px-2 py-1 rounded-lg text-xs font-semibold text-zinc-300 hover:text-amber-400 hover:bg-zinc-800 transition-colors flex items-center gap-1"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Sửa</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleResetTimer(timerNum)}
+                        disabled={!isOnline}
+                        className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                        title="Xóa lịch này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Collapsible Expert Mode (16 Raw Timers Grid) */}
+        <div className="pt-2 border-t border-zinc-850">
+          <button
+            type="button"
+            onClick={() => setShowExpertMode((prev) => !prev)}
+            className="flex items-center justify-between w-full py-2 px-3 rounded-xl bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-850 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
+              <span>{t('expertModeToggle')}</span>
+            </div>
+            {showExpertMode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {showExpertMode && (
+            <div className="mt-3 space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500">
+                  Bảng hiển thị 16 slot phần cứng nguyên bản của Tasmota:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFilterActiveOnly((prev) => !prev)}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[11px] font-medium border transition-colors',
+                    filterActiveOnly
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                  )}
+                >
+                  {filterActiveOnly ? 'Hiện tất cả 16 lịch' : 'Chỉ xem lịch đang bật'}
+                </button>
               </div>
-            );
-          })}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
+                {displayedTimersInExpert.map((timerNum) => {
+                  const timer = state?.timers?.[`Timer${timerNum}`] || {
+                    Enable: 0,
+                    Mode: 0,
+                    Time: '00:00',
+                    Window: 0,
+                    Days: '0000000',
+                    Repeat: 0,
+                    Output: 1,
+                    Action: 0
+                  };
+                  const isEnabled = timer.Enable === 1;
+
+                  return (
+                    <div
+                      key={timerNum}
+                      className={cn(
+                        'p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5',
+                        isEnabled ? 'bg-zinc-900 border-zinc-750' : 'bg-zinc-950/40 border-zinc-850 opacity-60'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                          #{timerNum}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSingleTimer(timerNum, timer)}
+                            disabled={!isOnline}
+                            className={cn(
+                              'w-6 h-3 rounded-full transition-colors relative p-0.5',
+                              isEnabled ? 'bg-emerald-500' : 'bg-zinc-700'
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'block w-2 h-2 rounded-full bg-white transition-transform',
+                                isEnabled ? 'translate-x-3' : 'translate-x-0'
+                              )}
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditTimer(timerNum)}
+                            className="p-1 text-zinc-400 hover:text-amber-400"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-mono font-bold text-zinc-200">{timer.Time || '00:00'}</span>
+                        <span className="text-[10px] text-zinc-500">
+                          {timer.Action === 1 ? 'ON' : timer.Action === 0 ? 'OFF' : 'TOG'} · Relay {timer.Output}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* MODAL: EDIT TIMER */}
+      {/* MODAL: ADD / EDIT TIMER */}
       {editingTimerIndex !== null && (
         <div
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
           onClick={() => setEditingTimerIndex(null)}
         >
           <div
-            className="bg-zinc-900 border border-zinc-700/80 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4"
+            className="bg-zinc-900 border border-zinc-750 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-amber-400" />
                 <h4 className="font-bold text-sm text-zinc-100">
-                  {t('editTimerTitle')} #{editingTimerIndex}
+                  {isCreatingNew ? t('addSchedule') : `${t('editTimerTitle')} (#${editingTimerIndex})`}
                 </h4>
               </div>
               <button
@@ -719,7 +908,10 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
             <form onSubmit={handleSaveTimerModal} className="space-y-4">
               {/* Enable Switch */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800">
-                <span className="text-xs font-semibold text-zinc-200">{t('timerEnabled')}</span>
+                <div>
+                  <span className="text-xs font-semibold text-zinc-200 block">{t('timerEnabled')}</span>
+                  <span className="text-[11px] text-zinc-500">Tự động kích hoạt khi đến giờ</span>
+                </div>
                 <input
                   type="checkbox"
                   checked={editTimerForm.Enable === 1}
@@ -742,7 +934,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                   onChange={(e) =>
                     setEditTimerForm((prev) => ({ ...prev, Time: e.target.value }))
                   }
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-zinc-100 text-sm font-mono focus:border-amber-500 focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-zinc-100 text-base font-mono focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
@@ -756,37 +948,39 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                     type="button"
                     onClick={() => setEditTimerForm((prev) => ({ ...prev, Action: 1 }))}
                     className={cn(
-                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center',
+                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center gap-1.5',
                       editTimerForm.Action === 1
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm'
                         : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
                     )}
                   >
-                    {t('actionOn')}
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>{t('btnOn')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditTimerForm((prev) => ({ ...prev, Action: 0 }))}
                     className={cn(
-                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center',
+                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center gap-1.5',
                       editTimerForm.Action === 0
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm'
                         : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
                     )}
                   >
-                    {t('actionOff')}
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{t('btnOff')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditTimerForm((prev) => ({ ...prev, Action: 2 }))}
                     className={cn(
-                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center',
+                      'py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center gap-1.5',
                       editTimerForm.Action === 2
                         ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm'
                         : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
                     )}
                   >
-                    {t('actionToggle')}
+                    <span>{t('actionToggle')}</span>
                   </button>
                 </div>
               </div>
@@ -804,7 +998,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                       Output: parseInt(e.target.value, 10)
                     }))
                   }
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
                 >
                   {powerKeys.map((key) => {
                     const num = parseInt(key.replace(/\D/g, '') || '1', 10);
@@ -827,13 +1021,13 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                   <label className="text-xs font-semibold text-zinc-300">
                     {t('daysOfWeek')}
                   </label>
-                  <div className="flex items-center gap-1.5 text-[10px]">
+                  <div className="flex items-center gap-1.5 text-[11px]">
                     <button
                       type="button"
                       onClick={() => setEditTimerForm((prev) => ({ ...prev, Days: '1111111' }))}
                       className="text-amber-400 hover:underline"
                     >
-                      Cả tuần
+                      {t('repeatDaily')}
                     </button>
                     <span className="text-zinc-600">•</span>
                     <button
@@ -841,7 +1035,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                       onClick={() => setEditTimerForm((prev) => ({ ...prev, Days: '0111110' }))}
                       className="text-amber-400 hover:underline"
                     >
-                      T2-T6
+                      {t('repeatWeekdays')}
                     </button>
                     <span className="text-zinc-600">•</span>
                     <button
@@ -849,7 +1043,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                       onClick={() => setEditTimerForm((prev) => ({ ...prev, Days: '1000001' }))}
                       className="text-amber-400 hover:underline"
                     >
-                      Cuối tuần
+                      {t('repeatWeekends')}
                     </button>
                   </div>
                 </div>
@@ -896,14 +1090,16 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
 
               {/* Modal Buttons */}
               <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => handleResetTimer(editingTimerIndex)}
-                  className="px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/15 border border-rose-500/30 text-xs font-semibold transition-all flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{t('deleteBtn')}</span>
-                </button>
+                {!isCreatingNew ? (
+                  <button
+                    type="button"
+                    onClick={() => handleResetTimer(editingTimerIndex)}
+                    className="px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/15 border border-rose-500/30 text-xs font-semibold transition-all flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{t('deleteBtn')}</span>
+                  </button>
+                ) : <div />}
 
                 <div className="flex items-center gap-2">
                   <button
