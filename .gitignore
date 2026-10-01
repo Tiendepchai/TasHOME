@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+
+# Persistent server data & secrets (DO NOT COMMIT)
+data/
+.totp_secret*
+.devices.json
+.dashboards.json
+*.tmp*
+
+# Firmware & hardware reverse engineering (tracked in wmh8266-firmware repo)
+stm32-wmh8266/
+firmware-backup/
+tasmota.bin
+
+# Tooling, indexes, and IDE
+.codegraph/
+.claude/
+.DS_Store
+*.log

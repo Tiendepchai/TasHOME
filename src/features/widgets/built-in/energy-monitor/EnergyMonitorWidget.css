@@ -1,0 +1,338 @@
+.energy-monitor {
+  --em-surface: #18181b;
+  --em-panel: #111113;
+  --em-line: #303034;
+  --em-ink: #fafafa;
+  --em-muted: #a1a1aa;
+  --em-accent: #f59e0b;
+  --em-accent-glow: rgba(245, 158, 11, 0.15);
+  --em-green: #10b981;
+  container: energy / inline-size;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 140px;
+  border: 1px solid var(--em-line);
+  border-radius: 16px;
+  background: var(--em-surface);
+  color: var(--em-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: hidden;
+  position: relative;
+}
+
+.energy-monitor *,
+.energy-monitor *::before,
+.energy-monitor *::after {
+  box-sizing: border-box;
+}
+
+.energy-monitor :where(h3, h4, p, span) {
+  margin: 0;
+}
+
+.energy-monitor svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.energy-monitor :focus-visible {
+  outline: 2px solid var(--em-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.energy-monitor .em-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+}
+
+/* Identity Header */
+.energy-monitor .em-identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.energy-monitor .em-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.energy-monitor .em-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--em-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.energy-monitor .em-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  color: var(--em-muted);
+  font-size: 11px;
+}
+
+.energy-monitor[data-status="online"] .em-status svg {
+  color: var(--em-green);
+}
+
+.energy-monitor[data-status="offline"] .em-status svg {
+  color: #ef4444;
+}
+
+.energy-monitor .em-live-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: var(--em-accent-glow);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--em-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Hero Power Display */
+.energy-monitor .em-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--em-panel);
+  border: 1px solid var(--em-line);
+}
+
+.energy-monitor .em-hero-label {
+  font-size: 11px;
+  color: var(--em-muted);
+  font-weight: 500;
+}
+
+.energy-monitor .em-hero-val-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.energy-monitor .em-hero-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--em-accent);
+  letter-spacing: -0.03em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Metrics Grid Default */
+.energy-monitor .em-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  flex: 1;
+}
+
+.energy-monitor .em-metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--em-panel);
+  border: 1px solid var(--em-line);
+}
+
+.energy-monitor .em-metric-label {
+  font-size: 10px;
+  color: var(--em-muted);
+}
+
+.energy-monitor .em-metric-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--em-ink);
+  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Empty, Waiting & No-sensor states */
+.energy-monitor .em-empty,
+.energy-monitor .em-no-sensor,
+.energy-monitor .em-empty-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px 16px;
+  gap: 8px;
+  color: var(--em-muted);
+  text-align: center;
+}
+
+.energy-monitor .em-no-sensor svg {
+  width: 24px;
+  height: 24px;
+  color: var(--em-accent);
+}
+
+/* 9 Layout Variations */
+
+/* 1. Layout 1x1: Compact card */
+.energy-monitor[data-layout="1x1"] .em-layout {
+  padding: 12px;
+  gap: 8px;
+}
+.energy-monitor[data-layout="1x1"] .em-hero {
+  padding: 8px 10px;
+}
+.energy-monitor[data-layout="1x1"] .em-hero-val {
+  font-size: 20px;
+}
+.energy-monitor[data-layout="1x1"] .em-metrics-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.energy-monitor[data-layout="1x1"] .em-metric-card:nth-child(n+3) {
+  display: none;
+}
+
+/* 2. Layout 2x1: Default Horizontal Duo */
+.energy-monitor[data-layout="2x1"] .em-layout {
+  display: grid;
+  grid-template: "identity identity" auto "hero metrics" 1fr / 200px 1fr;
+  gap: 10px;
+}
+.energy-monitor[data-layout="2x1"] .em-identity { grid-area: identity; }
+.energy-monitor[data-layout="2x1"] .em-hero { grid-area: hero; height: 100%; }
+.energy-monitor[data-layout="2x1"] .em-metrics-grid {
+  grid-area: metrics;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.energy-monitor[data-layout="2x1"] .em-metric-card:nth-child(n+4) {
+  display: none;
+}
+
+/* 3. Layout 3x1: Wide Ribbon */
+.energy-monitor[data-layout="3x1"] .em-layout {
+  display: grid;
+  grid-template: "identity metrics" auto / 220px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.energy-monitor[data-layout="3x1"] .em-identity { grid-area: identity; }
+.energy-monitor[data-layout="3x1"] .em-hero { display: none; }
+.energy-monitor[data-layout="3x1"] .em-metrics-grid {
+  grid-area: metrics;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.energy-monitor[data-layout="3x1"] .em-metric-card:nth-child(n+7) {
+  display: none;
+}
+
+/* 4. Layout 1x2: Vertical Tower */
+.energy-monitor[data-layout="1x2"] .em-metrics-grid {
+  grid-template-columns: 1fr;
+}
+.energy-monitor[data-layout="1x2"] .em-metric-card:nth-child(n+5) {
+  display: none;
+}
+
+/* 5. Layout 2x2: Balanced Grid */
+.energy-monitor[data-layout="2x2"] .em-metrics-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+.energy-monitor[data-layout="2x2"] .em-metric-card:nth-child(n+7) {
+  display: none;
+}
+
+/* 6. Layout 3x2: Extended Dashboard */
+.energy-monitor[data-layout="3x2"] .em-metrics-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* 7. Layout 1x3: Super Tall Column */
+.energy-monitor[data-layout="1x3"] .em-metrics-grid {
+  grid-template-columns: 1fr;
+  overflow-y: auto;
+}
+
+/* 8. Layout 2x3: Dual Column Tall */
+.energy-monitor[data-layout="2x3"] .em-metrics-grid {
+  grid-template-columns: repeat(2, 1fr);
+  overflow-y: auto;
+}
+
+/* 9. Layout 3x3: Full Matrix */
+.energy-monitor[data-layout="3x3"] .em-layout {
+  padding: 20px;
+  gap: 16px;
+}
+.energy-monitor[data-layout="3x3"] .em-hero {
+  padding: 16px 20px;
+}
+.energy-monitor[data-layout="3x3"] .em-hero-val {
+  font-size: 36px;
+}
+.energy-monitor[data-layout="3x3"] .em-metrics-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+/* Container Queries for responsive adaptation */
+@container energy (max-width: 480px) {
+  .energy-monitor[data-layout="2x1"] .em-layout {
+    grid-template: "identity" auto "hero" auto "metrics" 1fr / 1fr;
+  }
+  .energy-monitor[data-layout="2x1"] .em-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .energy-monitor[data-layout="3x1"] .em-layout {
+    grid-template: "identity" auto "metrics" 1fr / 1fr;
+  }
+  .energy-monitor[data-layout="3x1"] .em-metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@container energy (max-width: 260px) {
+  .energy-monitor .em-live-tag {
+    display: none;
+  }
+  .energy-monitor .em-hero-val {
+    font-size: 20px;
+  }
+}
+
+@container energy (min-width: 500px) {
+  .energy-monitor .em-hero-val {
+    font-size: 28px;
+  }
+  .energy-monitor .em-metric-card {
+    padding: 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .energy-monitor,
+  .energy-monitor * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

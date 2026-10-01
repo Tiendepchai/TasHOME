@@ -1,0 +1,240 @@
+.device-info {
+  --di-surface: #18181b;
+  --di-panel: #111113;
+  --di-line: #303034;
+  --di-ink: #fafafa;
+  --di-muted: #a1a1aa;
+  --di-accent: #fbbf24;
+  container: hardware / inline-size;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 280px;
+  border: 1px solid var(--di-line);
+  border-radius: 16px;
+  background: var(--di-surface);
+  color: var(--di-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.device-info *, .device-info *::before, .device-info *::after { box-sizing: border-box; }
+.device-info :where(h3, h4, p, dl, dd) { margin: 0; }
+.device-info svg { width: 15px; height: 15px; flex: none; }
+.device-info :focus-visible { outline: 2px solid var(--di-accent); outline-offset: 3px; border-radius: 4px; }
+.device-info .di-layout {
+  display: grid;
+  grid-template: "identity" auto "wifi" minmax(0, 1fr) "runtime" auto / minmax(0, 1fr);
+  gap: 12px;
+  padding: 20px;
+  height: 100%;
+  min-height: 278px;
+}
+.device-info .di-layout > * { min-width: 0; min-height: 0; }
+.device-info .di-identity { grid-area: identity; display: flex; align-items: flex-start; gap: 12px; }
+.device-info .di-heading { min-width: 0; flex: 1; }
+.device-info .di-name { font-size: 16px; line-height: 1.3; font-weight: 650; max-height: 2.6em; overflow: auto; }
+.device-info .di-status { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--di-muted); font-size: 11px; }
+.device-info .di-status svg { width: 13px; height: 13px; }
+.device-info[data-status="online"] .di-status svg { color: var(--di-accent); }
+.device-info .di-identity-type { display: none; margin-top: 14px; color: var(--di-muted); }
+.device-info .di-identity-type strong { display: block; margin-top: 4px; color: var(--di-ink); font-weight: 500; }
+.device-info .di-web {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--di-line);
+  border-radius: 10px;
+  color: var(--di-ink);
+  background: var(--di-panel);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.device-info .di-web:hover { border-color: var(--di-accent); }
+.device-info .di-panel { min-width: 0; min-height: 0; padding: 12px; border: 1px solid var(--di-line); border-radius: 12px; background: var(--di-panel); }
+.device-info h4, .device-info .di-runtime dt { display: flex; align-items: center; gap: 6px; color: var(--di-muted); font-size: 11px; font-weight: 500; }
+.device-info .di-system { grid-area: system; display: none; min-width: 0; min-height: 0; overflow: auto; align-content: start; gap: 10px; }
+.device-info .di-firmware { overflow: auto; }
+.device-info .di-firmware-value { margin-top: 8px; font-family: ui-monospace, monospace; }
+.device-info .di-details { display: grid; gap: 4px; margin-top: 8px; font-size: 11px; }
+.device-info .di-details > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 8px; }
+.device-info .di-details dt { color: var(--di-muted); }
+.device-info .di-details dd { font-family: ui-monospace, monospace; }
+.device-info .di-wifi { grid-area: wifi; align-self: center; border: 0; background: none; padding: 0; }
+.device-info .di-signal { margin-top: 6px; font-size: 48px; line-height: 1.05; font-weight: 600; letter-spacing: -0.04em; }
+.device-info .di-rssi { margin-top: 4px; color: var(--di-muted); font-size: 11px; }
+.device-info .di-rssi strong { color: var(--di-ink); font-weight: 400; }
+.device-info .di-wifi-details { display: none; overflow: auto; max-height: 3.6em; }
+.device-info .di-wifi-channel { display: none; }
+.device-info .di-runtime { grid-area: runtime; padding: 10px 0 0; border: 0; border-top: 1px solid var(--di-line); border-radius: 0; background: none; }
+.device-info .di-runtime dl { display: grid; gap: 12px; }
+.device-info .di-runtime dl > div { min-width: 0; }
+.device-info .di-runtime dd { margin-top: 4px; font-size: 20px; font-weight: 550; line-height: 1.2; max-height: 2.4em; overflow: auto; }
+.device-info .di-uptime { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.device-info .di-uptime dd { margin-top: 0; font-size: 14px; }
+.device-info .di-latency { display: none; }
+.device-info .di-network { grid-area: network; display: none; overflow: auto; }
+.device-info .di-gpio { grid-area: gpio; display: none; overflow: auto; }
+.device-info .di-gpio table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+.device-info .di-gpio th { color: var(--di-muted); font-weight: 500; text-align: left; }
+.device-info .di-gpio :is(th, td) { padding: 8px 6px; border-bottom: 1px solid var(--di-line); vertical-align: top; }
+.device-info .di-gpio :is(th, td):first-child { width: 52px; padding-left: 0; }
+.device-info .di-gpio td { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.device-info .di-gpio-extra { display: none; }
+.device-info .di-note { margin-top: 10px; color: var(--di-muted); }
+.device-info .di-empty { display: grid; place-content: center; justify-items: center; min-height: 278px; height: 100%; gap: 12px; color: var(--di-muted); }
+.device-info .di-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* Narrow towers keep their content grouped, not distributed along the full height. */
+.device-info:not([data-rows="1"]) .di-layout {
+  grid-template: "identity" auto "wifi" auto "runtime" auto "system" minmax(0, 1fr) / minmax(0, 1fr);
+  align-content: start;
+}
+.device-info:not([data-rows="1"]) .di-web { display: flex; }
+.device-info:not([data-rows="1"]) .di-web span { display: none; }
+.device-info:not([data-rows="1"]) .di-system { display: grid; }
+.device-info:not([data-rows="1"]) .di-wifi { padding: 12px; border: 1px solid var(--di-line); background: var(--di-panel); }
+.device-info:not([data-rows="1"]) .di-signal { font-size: 44px; }
+.device-info:not([data-rows="1"]) .di-runtime { padding: 12px; border: 1px solid var(--di-line); border-radius: 12px; background: var(--di-panel); }
+.device-info:not([data-rows="1"]) .di-runtime dl { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.device-info:not([data-rows="1"]) .di-uptime { display: block; }
+.device-info:not([data-rows="1"]) .di-uptime dd { margin-top: 4px; font-size: 18px; }
+.device-info:not([data-rows="1"]) .di-latency { display: block; }
+.device-info[data-rows="3"] .di-layout {
+  grid-template: "identity" auto "system" auto "wifi" auto "runtime" auto "network" auto "gpio" minmax(0, 1fr) / minmax(0, 1fr);
+}
+.device-info[data-rows="3"] :is(.di-network, .di-gpio) { display: block; }
+
+@container hardware (min-width: 520px) {
+  .device-info .di-web, .device-info:not([data-rows="1"]) .di-web span { display: flex; }
+  .device-info .di-wifi { padding: 14px; border: 1px solid var(--di-line); background: var(--di-panel); align-self: stretch; }
+  .device-info .di-wifi-details { display: grid; }
+  .device-info .di-signal { font-size: 40px; }
+  .device-info .di-runtime { padding: 14px; border: 1px solid var(--di-line); border-radius: 12px; background: var(--di-panel); }
+  .device-info .di-uptime { display: block; }
+  .device-info .di-uptime dd { margin-top: 4px; font-size: 20px; }
+  .device-info .di-latency { display: block; }
+  .device-info .di-runtime dl { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+
+  /* 2x1: identity rail, compact telemetry at right. */
+  .device-info[data-rows="1"] .di-layout { grid-template: "identity wifi" minmax(0, 1fr) "identity runtime" auto / minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .device-info[data-rows="1"] .di-identity { flex-direction: column; gap: 14px; }
+  .device-info[data-rows="1"] .di-heading { flex: none; overflow: auto; max-height: 166px; }
+  .device-info[data-rows="1"] .di-identity-type { display: block; }
+  .device-info[data-rows="1"] .di-wifi { padding: 10px 14px; }
+  .device-info[data-rows="1"] .di-runtime { padding: 10px 14px; }
+  .device-info[data-rows="1"] .di-wifi-details { margin-top: 4px; max-height: 1.8em; }
+
+  /* 2x2: four independent zones, one shared header. */
+  .device-info[data-rows="2"] .di-layout {
+    grid-template-areas:
+      "identity identity"
+      "hardware wifi"
+      "firmware runtime";
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .device-info[data-rows="2"] .di-system { display: contents; }
+  .device-info[data-rows="2"] .di-hardware { grid-area: hardware; overflow: auto; }
+  .device-info[data-rows="2"] .di-firmware { grid-area: firmware; }
+  .device-info[data-rows="2"] :is(.di-hardware, .di-firmware, .di-wifi, .di-runtime) { padding: 20px; }
+  .device-info[data-rows="2"] .di-hardware .di-details { gap: 16px; margin-top: 16px; }
+  .device-info[data-rows="2"] .di-hardware .di-details > div { display: block; }
+  .device-info[data-rows="2"] .di-hardware dd { margin-top: 4px; font-size: 16px; }
+  .device-info[data-rows="2"] .di-firmware-value { margin-top: 16px; font-size: 18px; }
+  .device-info[data-rows="2"] .di-runtime dl { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .device-info[data-rows="2"] .di-signal { margin-top: 16px; font-size: 48px; }
+  .device-info[data-rows="2"] .di-wifi-details { margin-top: 16px; }
+
+  /* 2x3: metrics, paired dossiers, then the GPIO list. */
+  .device-info[data-rows="3"] .di-layout {
+    grid-template-areas:
+      "identity identity"
+      "wifi runtime"
+      "system network"
+      "gpio gpio";
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .device-info[data-rows="3"] .di-runtime dl { grid-template-columns: minmax(0, 1fr); }
+  .device-info[data-rows="3"] .di-wifi-details { display: none; }
+  .device-info[data-rows="3"] .di-network .di-details { gap: 12px; }
+}
+
+@container hardware (min-width: 860px) {
+  /* 3x1: hardware + firmware / connection / runtime. */
+  .device-info[data-rows="1"] .di-layout {
+    grid-template-areas:
+      "identity identity identity"
+      "system wifi runtime";
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .device-info[data-rows="1"] .di-identity { flex-direction: row; align-items: center; }
+  .device-info[data-rows="1"] .di-heading { flex: 1; max-height: none; }
+  .device-info[data-rows="1"] .di-identity-type { display: none; }
+  .device-info[data-rows="1"] .di-system { display: grid; gap: 0; padding: 10px 14px; border: 1px solid var(--di-line); border-radius: 12px; background: var(--di-panel); }
+  .device-info[data-rows="1"] .di-system .di-panel { padding: 0; border: 0; background: none; }
+  .device-info[data-rows="1"] .di-firmware { margin-top: 10px; }
+  .device-info[data-rows="1"] .di-firmware-value { margin-top: 4px; font-size: 11px; }
+  .device-info[data-rows="1"] .di-wifi-details { max-height: 3.6em; }
+  .device-info[data-rows="1"] .di-wifi-channel { display: grid; }
+  .device-info[data-rows="1"] .di-runtime dl { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+  /* 3x2: identity at left, metrics in the middle, network at right, GPIO below. */
+  .device-info[data-rows="2"] .di-layout {
+    grid-template-areas:
+      "identity wifi network"
+      "system runtime network"
+      "gpio gpio gpio";
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .device-info[data-rows="2"] .di-identity { flex-direction: column; }
+  .device-info[data-rows="2"] .di-system { display: grid; }
+  .device-info[data-rows="2"] :is(.di-hardware, .di-firmware) { grid-area: auto; }
+  .device-info[data-rows="2"] :is(.di-hardware, .di-firmware, .di-wifi, .di-runtime) { padding: 12px; }
+  .device-info[data-rows="2"] .di-hardware .di-details { gap: 4px; margin-top: 8px; }
+  .device-info[data-rows="2"] .di-hardware .di-details > div { display: grid; }
+  .device-info[data-rows="2"] .di-hardware dd { margin-top: 0; font-size: 11px; }
+  .device-info[data-rows="2"] .di-firmware-value { margin-top: 8px; font-size: 12px; }
+  .device-info[data-rows="2"] .di-signal { margin-top: 6px; font-size: 44px; }
+  .device-info[data-rows="2"] .di-runtime dl { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+  .device-info[data-rows="2"] :is(.di-network, .di-gpio) { display: block; }
+  .device-info[data-rows="2"] .di-network .di-details { gap: 18px; margin-top: 16px; }
+  .device-info[data-rows="2"] .di-wifi-details { display: none; }
+
+  /* 3x3: three headline metrics and a full-width four-column GPIO table. */
+  .device-info[data-rows="3"] .di-layout {
+    grid-template-areas:
+      "identity identity identity identity identity identity"
+      "wifi wifi runtime runtime runtime runtime"
+      "system system system network network network"
+      "gpio gpio gpio gpio gpio gpio";
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .device-info[data-rows="3"] .di-runtime dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .device-info[data-rows="3"] .di-runtime dd { margin-top: 14px; font-size: 32px; }
+  .device-info[data-rows="3"] .di-gpio-extra { display: table-cell; }
+  .device-info[data-rows="3"] :is(.di-runtime, .di-wifi, .di-network, .di-gpio) { padding: 20px; }
+}
+
+/* The dashboard uses auto rows on phones: never force desktop tower heights. */
+@media (max-width: 767px) {
+  .device-info { height: auto; }
+  .device-info .di-layout { height: auto; }
+  .device-info:not([data-rows="1"]) .di-system { max-height: 280px; }
+  .device-info .di-gpio { max-height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .device-info *, .device-info *::before, .device-info *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
