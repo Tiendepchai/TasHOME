@@ -15,6 +15,7 @@ const PULSE_TIME_PRESETS: Array<{ key: TranslationKey; val: number }> = [
 ];
 
 export const RelayToggleWidget: React.FC<WidgetProps> = ({
+  config,
   title,
   devices,
   deviceStates,
@@ -113,7 +114,14 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     }
   };
 
-  const isSingleChannel = powerKeys.length === 1;
+  // User configured visible channels
+  const visibleConfig = config?.settings?.visibleChannels as string[] | undefined;
+  const activePowerKeys =
+    Array.isArray(visibleConfig) && visibleConfig.length > 0
+      ? powerKeys.filter((k) => visibleConfig.includes(k))
+      : powerKeys;
+
+  const isSingleChannel = activePowerKeys.length === 1;
   const is1x1 = colSpan === 1 && rowSpan === 1;
 
   return (
@@ -121,7 +129,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
       className="relay-widget"
       data-rows={rowSpan}
       data-layout={`${colSpan}x${rowSpan}`}
-      data-channels={powerKeys.length}
+      data-channels={activePowerKeys.length}
       data-status={status}
       aria-label={t('relayControl')}
     >
@@ -156,7 +164,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
           {isSingleChannel && is1x1 ? (
             // Hero single toggle for 1x1
             (() => {
-              const key = powerKeys[0];
+              const key = activePowerKeys[0];
               const isActive = localPower[key] !== undefined ? localPower[key] : !!state?.power?.[key];
               const isBusy = !!toggling[key];
               return (
@@ -178,7 +186,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
             })()
           ) : (
             // Multi-channel list / cards
-            powerKeys.map((key) => {
+            activePowerKeys.map((key) => {
               const chNum = parseInt(key.replace(/\D/g, '') || '1', 10);
               const isActive = localPower[key] !== undefined ? localPower[key] : !!state?.power?.[key];
               const isBusy = !!toggling[key];

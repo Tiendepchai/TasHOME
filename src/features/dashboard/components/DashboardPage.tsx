@@ -50,13 +50,51 @@ export const DashboardPage: React.FC = () => {
   const [editDeviceId, setEditDeviceId] = useState('');
   const [editColSpan, setEditColSpan] = useState<1 | 2 | 3>(1);
   const [editRowSpan, setEditRowSpan] = useState<1 | 2 | 3>(1);
+  const [editVisibleChannels, setEditVisibleChannels] = useState<string[]>([]);
+
+  const getDeviceChannels = (devId: string) => {
+    const dev = devices[devId];
+    const devState = deviceStates[devId];
+    const channelSet = new Set<string>();
+    Object.keys(devState?.power || {}).forEach((k) => {
+      if (/^POWER\d*$/i.test(k)) channelSet.add(k.toUpperCase());
+    });
+    if (dev?.relayLabels) {
+      Object.keys(dev.relayLabels).forEach((k) => {
+        if (/^POWER\d*$/i.test(k)) channelSet.add(k.toUpperCase());
+      });
+    }
+    if (channelSet.size === 0) channelSet.add('POWER1');
+    const keys = Array.from(channelSet).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, '') || '1', 10);
+      const numB = parseInt(b.replace(/\D/g, '') || '1', 10);
+      return numA - numB;
+    });
+    return keys.map((key) => {
+      const chNum = parseInt(key.replace(/\D/g, '') || '1', 10);
+      const label =
+        dev?.relayLabels?.[key] ||
+        dev?.friendlyNames?.[chNum - 1] ||
+        `Relay ${chNum}`;
+      return { key, label };
+    });
+  };
 
   const openEditModal = (w: (typeof activeDash.widgets)[0]) => {
+    const devId = w.config.deviceIds?.[0] || Object.keys(devices)[0] || '';
     setEditingWidget(w);
     setEditTitle(w.title || '');
-    setEditDeviceId(w.config.deviceIds?.[0] || Object.keys(devices)[0] || '');
+    setEditDeviceId(devId);
     setEditColSpan((w.colSpan || 1) as 1 | 2 | 3);
     setEditRowSpan((w.rowSpan || 1) as 1 | 2 | 3);
+
+    const available = getDeviceChannels(devId).map((c) => c.key);
+    const existing = w.config.settings?.visibleChannels as string[] | undefined;
+    if (Array.isArray(existing) && existing.length > 0) {
+      setEditVisibleChannels(existing);
+    } else {
+      setEditVisibleChannels(available);
+    }
   };
 
   const handleSaveWidget = (e: React.FormEvent) => {
@@ -66,7 +104,11 @@ export const DashboardPage: React.FC = () => {
       title: editTitle.trim(),
       deviceIds: editDeviceId ? [editDeviceId] : undefined,
       colSpan: editColSpan,
-      rowSpan: editRowSpan
+      rowSpan: editRowSpan,
+      settings:
+        editingWidget.config.widgetType === 'relay-toggle'
+          ? { ...editingWidget.config.settings, visibleChannels: editVisibleChannels }
+          : undefined
     });
     setEditingWidget(null);
     addToast(t('toastWidgetUpdated'), 'success');
@@ -521,7 +563,11 @@ export const DashboardPage: React.FC = () => {
                   </label>
                   <select
                     value={editDeviceId}
-                    onChange={(e) => setEditDeviceId(e.target.value)}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setEditDeviceId(newId);
+                      setEditVisibleChannels(getDeviceChannels(newId).map((c) => c.key));
+                    }}
                     className="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-100 font-mono focus:outline-none focus:border-amber-500"
                   >
                     {Object.values(devices).map((d) => (
@@ -531,6 +577,66 @@ export const DashboardPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
+              )}
+
+              {/* Channel visibility (show/hide) for Relay Widget */}
+              {editingWidget.config.widgetType === 'relay-toggle' && (
+                (() => {
+                  const availableRelays = getDeviceChannels(editDeviceId);
+                  if (availableRelays.length <= 1) return null;
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-zinc-400">
+                          {t('visibleRelaysLabel')}
+                        </label>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          {editVisibleChannels.length}/{availableRelays.length}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mb-2">
+                        {t('visibleRelaysHint')}
+                      </p>
+                      <div className="space-y-1.5">
+                        {availableRelays.map((ch) => {
+                          const isChecked = editVisibleChannels.includes(ch.key);
+                          return (
+                            <label
+                              key={ch.key}
+                              className={cn(
+                                'flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all select-none',
+                                isChecked
+                                  ? 'bg-zinc-950/80 border-amber-500/50 text-zinc-200'
+                                  : 'bg-zinc-950/30 border-zinc-800/80 text-zinc-500 opacity-60'
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    if (isChecked) {
+                                      if (editVisibleChannels.length <= 1) {
+                                        addToast(t('atLeastOneRelay'), 'warning');
+                                        return;
+                                      }
+                                      setEditVisibleChannels(editVisibleChannels.filter((k) => k !== ch.key));
+                                    } else {
+                                      setEditVisibleChannels([...editVisibleChannels, ch.key]);
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-amber-500 accent-amber-500 focus:ring-0 cursor-pointer"
+                                />
+                                <span className="font-semibold">{ch.label}</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-zinc-500">{ch.key}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()
               )}
 
               {/* Width (ColSpan) */}

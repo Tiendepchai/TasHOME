@@ -15,6 +15,7 @@ interface DashboardState {
       deviceIds?: string[];
       colSpan?: 1 | 2 | 3;
       rowSpan?: 1 | 2 | 3;
+      settings?: Record<string, any>;
     }
   ) => void;
   reorderWidgets: (startIndex: number, endIndex: number) => void;
@@ -143,12 +144,20 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                 ...(updates.title !== undefined && { title: updates.title }),
                 ...(updates.colSpan !== undefined && { colSpan: updates.colSpan }),
                 ...(updates.rowSpan !== undefined && { rowSpan: updates.rowSpan }),
-                ...(updates.deviceIds !== undefined && {
-                  config: {
-                    ...w.config,
-                    deviceIds: updates.deviceIds
-                  }
-                })
+                ...(updates.deviceIds !== undefined || updates.settings !== undefined
+                  ? {
+                      config: {
+                        ...w.config,
+                        ...(updates.deviceIds !== undefined && { deviceIds: updates.deviceIds }),
+                        ...(updates.settings !== undefined && {
+                          settings: {
+                            ...w.config.settings,
+                            ...updates.settings
+                          }
+                        })
+                      }
+                    }
+                  : {})
               };
             })
           };

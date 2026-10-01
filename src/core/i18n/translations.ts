@@ -65,6 +65,9 @@ export const translations = {
     saveWidgetBtn: 'Lưu Thay Đổi',
     deleteWidgetBtn: 'Xóa Widget',
     toastWidgetUpdated: 'Đã cập nhật widget thành công',
+    visibleRelaysLabel: 'Chọn công tắc hiển thị (Ẩn/Hiện)',
+    visibleRelaysHint: 'Chọn các kênh relay muốn bật hiển thị trên widget',
+    atLeastOneRelay: 'Vui lòng chọn ít nhất 1 công tắc',
 
     // Widget Types
     widgetRelayTitle: 'Công tắc Relay',
@@ -332,6 +335,9 @@ export const translations = {
     saveWidgetBtn: 'Save Changes',
     deleteWidgetBtn: 'Delete Widget',
     toastWidgetUpdated: 'Widget updated successfully',
+    visibleRelaysLabel: 'Visible Switches (Show/Hide)',
+    visibleRelaysHint: 'Select which relay channels to display on this widget',
+    atLeastOneRelay: 'Please select at least 1 switch',
 
     // Widget Types
     widgetRelayTitle: 'Relay Switch',
@@ -599,6 +605,9 @@ export const translations = {
     saveWidgetBtn: 'Änderungen speichern',
     deleteWidgetBtn: 'Widget löschen',
     toastWidgetUpdated: 'Widget erfolgreich aktualisiert',
+    visibleRelaysLabel: 'Sichtbare Schalter (Ein-/Ausblenden)',
+    visibleRelaysHint: 'Wählen Sie die Relaiskanäle aus, die auf diesem Widget angezeigt werden sollen',
+    atLeastOneRelay: 'Bitte wählen Sie mindestens 1 Schalter aus',
 
     // Widget Types
     widgetRelayTitle: 'Relaisschalter',
