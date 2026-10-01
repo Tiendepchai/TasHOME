@@ -208,54 +208,27 @@
   height: 32px;
 }
 
-/* 2s Hover Preparation: Membrane tension & Bio-breathing */
+/* 2s Hover Preparation: Organic Bio-breathing directly on the button */
 .relay-widget .rw-mitosis-stage[data-preparing="true"] .rw-mother-cell {
-  animation: rw-mitosis-prep 1s ease-in-out infinite;
-  box-shadow: 0 0 16px var(--rw-accent-glow), 0 0 0 2px rgba(245, 158, 11, 0.4);
+  animation: rw-cell-breathing 1.2s ease-in-out infinite;
 }
 
-@keyframes rw-mitosis-prep {
-  0%, 100% {
+@keyframes rw-cell-breathing {
+  0% {
     transform: scale(1);
-    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(245, 158, 11, 0);
+    border-color: var(--rw-line);
   }
-  30% {
-    transform: scaleX(1.06) scaleY(0.96);
-    border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 25px var(--rw-accent-glow), 0 0 10px rgba(245, 158, 11, 0.45);
+    border-color: var(--rw-accent);
+    color: var(--rw-ink);
   }
-  70% {
-    transform: scaleX(0.97) scaleY(1.05);
-    border-radius: 54% 46% 52% 48% / 48% 52% 48% 52%;
-  }
-}
-
-/* SVG Prep Ring filling over 2 seconds */
-.relay-widget .rw-prep-ring {
-  position: absolute;
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
-  pointer-events: none;
-  z-index: 10;
-  transform: rotate(-90deg);
-}
-
-.relay-widget .rw-prep-ring circle {
-  fill: none;
-  stroke: var(--rw-accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 289;
-  stroke-dashoffset: 289;
-  animation: rw-ring-fill 2s linear forwards;
-}
-
-@keyframes rw-ring-fill {
-  from {
-    stroke-dashoffset: 289;
-  }
-  to {
-    stroke-dashoffset: 0;
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(245, 158, 11, 0);
+    border-color: var(--rw-line);
   }
 }
 
@@ -507,31 +480,6 @@
   color: #09090b;
   font-weight: 700;
   box-shadow: 0 0 12px var(--rw-accent-glow);
-}
-
-.relay-widget .rw-header-timer-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--rw-line);
-  background: var(--rw-panel);
-  color: var(--rw-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.relay-widget .rw-header-timer-btn:hover {
-  color: var(--rw-accent);
-  border-color: var(--rw-accent);
-}
-
-.relay-widget .rw-header-timer-btn[data-active="true"] {
-  color: var(--rw-accent);
-  border-color: var(--rw-accent);
-  background: var(--rw-accent-glow);
 }
 
 .relay-widget .rw-countdown-badge {

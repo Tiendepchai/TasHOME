@@ -283,33 +283,6 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               )}
             </div>
           </div>
-
-          {/* Quick Timer Button for 1x1 Hero */}
-          {is1x1 && isSingleChannel && (
-            (() => {
-              const key = activePowerKeys[0];
-              const chNum = parseInt(key.replace(/\D/g, '') || '1', 10);
-              const channelName =
-                device.relayLabels?.[key] ||
-                device.friendlyNames?.[chNum - 1] ||
-                `${t('channelLabel')} ${chNum}`;
-              const pulse = state?.pulseTimes?.[key];
-              const isArmed = (pulse?.set ?? 0) > 0;
-
-              return (
-                <button
-                  type="button"
-                  className="rw-header-timer-btn"
-                  data-active={isArmed ? 'true' : 'false'}
-                  onClick={() => setCustomModalChannel({ chNum, key, name: channelName })}
-                  title={t('timeCustomTitle')}
-                  aria-label={t('timeCustomTitle')}
-                >
-                  <Clock aria-hidden="true" />
-                </button>
-              );
-            })()
-          )}
         </header>
 
         {/* Channels */}
@@ -355,13 +328,6 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     >
                       <Power aria-hidden="true" />
                       <span className="rw-btn-label">{isActive ? t('btnOn') : t('btnOff')}</span>
-
-                      {/* 2-second hover countdown ring */}
-                      {isPreparing && (
-                        <svg className="rw-prep-ring" viewBox="0 0 100 100" aria-hidden="true">
-                          <circle cx="50" cy="50" r="46" />
-                        </svg>
-                      )}
                     </button>
 
                     {/* Daughter cell: Timer button appearing symmetrically next to power button */}
