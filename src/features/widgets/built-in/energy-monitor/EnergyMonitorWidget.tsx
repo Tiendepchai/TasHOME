@@ -10,6 +10,7 @@ const finite = (value: unknown): value is number => typeof value === 'number' &&
 const formatMetric = (value: unknown, unit = '') => finite(value) ? `${value}${unit ? ` ${unit}` : ''}` : '—';
 
 export const EnergyMonitorWidget: React.FC<WidgetProps> = ({
+  title,
   devices,
   deviceStates,
   colSpan = 2,
@@ -41,7 +42,7 @@ export const EnergyMonitorWidget: React.FC<WidgetProps> = ({
         <div className="em-layout">
           <header className="em-identity">
             <div className="em-heading">
-              <h3 className="em-name">{text(device.friendlyName)}</h3>
+              <h3 className="em-name">{title || text(device.friendlyName)}</h3>
               <p className="em-status">
                 <StatusIcon aria-hidden="true" />
                 <span>{t('waitingData')}</span>
@@ -57,7 +58,7 @@ export const EnergyMonitorWidget: React.FC<WidgetProps> = ({
         <div className="em-layout">
           <header className="em-identity">
             <div className="em-heading">
-              <h3 className="em-name">{text(device.friendlyName)}</h3>
+              <h3 className="em-name">{title || text(device.friendlyName)}</h3>
               <p className="em-status">
                 <StatusIcon aria-hidden="true" />
                 <span>{status === 'online' ? t('online') : t('offlineStale')}</span>
@@ -73,7 +74,7 @@ export const EnergyMonitorWidget: React.FC<WidgetProps> = ({
         <div className="em-layout">
           <header className="em-identity">
             <div className="em-heading">
-              <h3 className="em-name">{text(device.friendlyName)}</h3>
+              <h3 className="em-name">{title || text(device.friendlyName)}</h3>
               <p className="em-status">
                 <StatusIcon aria-hidden="true" />
                 <span>{status === 'online' ? t('online') : t('offlineStale')}</span>

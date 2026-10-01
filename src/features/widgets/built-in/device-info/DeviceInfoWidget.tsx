@@ -27,6 +27,7 @@ function webUiUrl(address: unknown) {
 }
 
 export const DeviceInfoWidget: React.FC<WidgetProps> = ({
+  title,
   devices,
   deviceStates,
   colSpan = 2,
@@ -52,7 +53,7 @@ export const DeviceInfoWidget: React.FC<WidgetProps> = ({
         <div className="di-layout">
           <header className="di-identity">
             <div className="di-heading">
-              <h3 className="di-name">{text(device.friendlyName)}</h3>
+              <h3 className="di-name">{title || text(device.friendlyName)}</h3>
               <p className="di-status"><StatusIcon aria-hidden="true" />
                 {status === 'online' ? t('online') : status === 'offline' ? t('offlineStale') : t('waitingData')}
               </p>

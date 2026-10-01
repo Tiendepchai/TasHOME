@@ -10,6 +10,7 @@ export interface WidgetConfig {
 export interface WidgetProps {
   instanceId: string;
   config: WidgetConfig;
+  title?: string;
   devices: TasmotaDevice[];
   deviceStates: Record<string, DeviceState>;
   onCommand: (deviceId: string, command: string) => Promise<any>;

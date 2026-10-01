@@ -15,6 +15,7 @@ const PULSE_TIME_PRESETS: Array<{ key: TranslationKey; val: number }> = [
 ];
 
 export const RelayToggleWidget: React.FC<WidgetProps> = ({
+  title,
   devices,
   deviceStates,
   onCommand,
@@ -128,7 +129,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
         {/* Card Header */}
         <header className="rw-header">
           <div className="rw-identity">
-            <h3 className="rw-name">{device.friendlyName}</h3>
+            <h3 className="rw-name">{title || device.friendlyName}</h3>
             <div className="rw-meta">
               <span className="rw-status-tag">
                 {isOnline ? (

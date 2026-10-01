@@ -5,7 +5,7 @@ import { getWidgetDefinition } from '@/features/widgets/registry/widget-registry
 import { tasmotaHttp } from '@/core/http/tasmota-http-client';
 import { pollScheduler } from '@/core/http/poll-scheduler';
 import { QuickActionBar } from './QuickActionBar';
-import { Plus, RotateCcw, X, LayoutGrid, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, RotateCcw, X, LayoutGrid, Sparkles, Trash2, Pencil, Check } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useToast } from '@/shared/components/Toast';
 import { useTranslation } from '@/core/i18n';
@@ -17,6 +17,7 @@ export const DashboardPage: React.FC = () => {
     addWidget,
     removeWidget,
     updateWidgetSize,
+    updateWidget,
     reorderWidgets,
     resetDefaultLayout
   } = useDashboardStore();
@@ -42,6 +43,41 @@ export const DashboardPage: React.FC = () => {
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [draggingInstanceId, setDraggingInstanceId] = useState<string | null>(null);
   const [isOverTrash, setIsOverTrash] = useState(false);
+
+  // Edit widget modal state
+  const [editingWidget, setEditingWidget] = useState<(typeof activeDash.widgets)[0] | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDeviceId, setEditDeviceId] = useState('');
+  const [editColSpan, setEditColSpan] = useState<1 | 2 | 3>(1);
+  const [editRowSpan, setEditRowSpan] = useState<1 | 2 | 3>(1);
+
+  const openEditModal = (w: (typeof activeDash.widgets)[0]) => {
+    setEditingWidget(w);
+    setEditTitle(w.title || '');
+    setEditDeviceId(w.config.deviceIds?.[0] || Object.keys(devices)[0] || '');
+    setEditColSpan((w.colSpan || 1) as 1 | 2 | 3);
+    setEditRowSpan((w.rowSpan || 1) as 1 | 2 | 3);
+  };
+
+  const handleSaveWidget = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWidget) return;
+    updateWidget(editingWidget.instanceId, {
+      title: editTitle.trim(),
+      deviceIds: editDeviceId ? [editDeviceId] : undefined,
+      colSpan: editColSpan,
+      rowSpan: editRowSpan
+    });
+    setEditingWidget(null);
+    addToast(t('toastWidgetUpdated'), 'success');
+  };
+
+  const handleDeleteWidget = () => {
+    if (!editingWidget) return;
+    removeWidget(editingWidget.instanceId);
+    setEditingWidget(null);
+    addToast(t('toastWidgetRemoved'), 'info');
+  };
 
   const startResizing = (
     e: React.PointerEvent,
@@ -286,9 +322,26 @@ export const DashboardPage: React.FC = () => {
                   className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-20 touch-none"
                 />
 
+                {/* Edit Button */}
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openEditModal(widgetInst);
+                  }}
+                  className="absolute top-3 right-3 z-30 min-w-[32px] min-h-[32px] rounded-xl bg-zinc-900/90 hover:bg-amber-500 hover:text-zinc-950 text-zinc-400 border border-zinc-700/70 hover:border-amber-400 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 transition-all duration-200 shadow-lg cursor-pointer backdrop-blur-md active:scale-95"
+                  title={t('editWidget')}
+                  aria-label={t('editWidget')}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+
                 <Component
                   instanceId={widgetInst.instanceId}
                   config={widgetInst.config}
+                  title={widgetInst.title}
                   devices={effectiveDevices}
                   deviceStates={deviceStates}
                   onCommand={handleCommand}
@@ -417,6 +470,146 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Widget Modal */}
+      {editingWidget && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-100">{t('editWidgetModalTitle')}</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{t('editWidgetModalDesc')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingWidget(null)}
+                aria-label={t('close')}
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveWidget} className="space-y-4">
+              {/* Title input */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  {t('widgetTitleLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder={t('widgetTitlePlaceholder')}
+                  className="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              {/* Device Selector */}
+              {Object.keys(devices).length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                    {t('linkedDeviceLabel')}
+                  </label>
+                  <select
+                    value={editDeviceId}
+                    onChange={(e) => setEditDeviceId(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-100 font-mono focus:outline-none focus:border-amber-500"
+                  >
+                    {Object.values(devices).map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.friendlyName} ({d.ipAddress})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Width (ColSpan) */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  {t('widgetWidthLabel')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([1, 2, 3] as const).map((cols) => (
+                    <button
+                      key={cols}
+                      type="button"
+                      onClick={() => setEditColSpan(cols)}
+                      className={cn(
+                        'py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer',
+                        editColSpan === cols
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/60 shadow-sm'
+                          : 'bg-zinc-950/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
+                      )}
+                    >
+                      {cols === 1 ? t('colSpan1') : cols === 2 ? t('colSpan2') : t('colSpan3')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Height (RowSpan) */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  {t('widgetHeightLabel')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([1, 2, 3] as const).map((rows) => (
+                    <button
+                      key={rows}
+                      type="button"
+                      onClick={() => setEditRowSpan(rows)}
+                      className={cn(
+                        'py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer',
+                        editRowSpan === rows
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/60 shadow-sm'
+                          : 'bg-zinc-950/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
+                      )}
+                    >
+                      {rows === 1 ? t('rowSpan1') : rows === 2 ? t('rowSpan2') : t('rowSpan3')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-800 gap-3">
+                <button
+                  type="button"
+                  onClick={handleDeleteWidget}
+                  className="min-h-[40px] px-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('deleteWidgetBtn')}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingWidget(null)}
+                    className="min-h-[40px] px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs transition-all cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="min-h-[40px] px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{t('saveWidgetBtn')}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

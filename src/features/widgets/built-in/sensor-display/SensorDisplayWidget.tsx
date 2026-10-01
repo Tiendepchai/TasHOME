@@ -4,6 +4,7 @@ import { Thermometer, Gauge, Activity, Droplets, Zap, Sun } from 'lucide-react';
 import { useTranslation } from '@/core/i18n';
 
 export const SensorDisplayWidget: React.FC<WidgetProps> = ({
+  title,
   devices,
   deviceStates
 }) => {
@@ -32,7 +33,7 @@ export const SensorDisplayWidget: React.FC<WidgetProps> = ({
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-zinc-100 text-sm tracking-tight">{t('sensorHeading')}</h3>
+            <h3 className="font-bold text-zinc-100 text-sm tracking-tight">{title || t('sensorHeading')}</h3>
             <p className="text-[10px] text-zinc-500">Telemetry Status 8 / 10</p>
           </div>
         </div>

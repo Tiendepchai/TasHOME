@@ -8,6 +8,15 @@ interface DashboardState {
   addWidget: (widgetType: string, deviceIds: string[], title?: string, colSpan?: 1 | 2 | 3, rowSpan?: 1 | 2 | 3) => void;
   removeWidget: (instanceId: string) => void;
   updateWidgetSize: (instanceId: string, colSpan?: 1 | 2 | 3, rowSpan?: 1 | 2 | 3) => void;
+  updateWidget: (
+    instanceId: string,
+    updates: {
+      title?: string;
+      deviceIds?: string[];
+      colSpan?: 1 | 2 | 3;
+      rowSpan?: 1 | 2 | 3;
+    }
+  ) => void;
   reorderWidgets: (startIndex: number, endIndex: number) => void;
   setActiveDashboard: (id: string) => void;
   resetDefaultLayout: () => void;
@@ -112,6 +121,36 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                   }
                 : w
             )
+          };
+        }
+        return dash;
+      });
+      saveDashboardsToServer(dashboards);
+      return { dashboards };
+    });
+  },
+
+  updateWidget: (instanceId, updates) => {
+    set((state) => {
+      const dashboards = state.dashboards.map((dash) => {
+        if (dash.id === state.activeDashboardId) {
+          return {
+            ...dash,
+            widgets: dash.widgets.map((w) => {
+              if (w.instanceId !== instanceId) return w;
+              return {
+                ...w,
+                ...(updates.title !== undefined && { title: updates.title }),
+                ...(updates.colSpan !== undefined && { colSpan: updates.colSpan }),
+                ...(updates.rowSpan !== undefined && { rowSpan: updates.rowSpan }),
+                ...(updates.deviceIds !== undefined && {
+                  config: {
+                    ...w.config,
+                    deviceIds: updates.deviceIds
+                  }
+                })
+              };
+            })
           };
         }
         return dash;
