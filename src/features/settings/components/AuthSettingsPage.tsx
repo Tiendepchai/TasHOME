@@ -58,23 +58,25 @@ export const AuthSettingsPage: React.FC = () => {
         <p className="text-xs text-zinc-400">Quản lý mã xác thực hai lớp và thời hạn phiên làm việc</p>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6 shadow-sm">
+      <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-6 sm:p-7 space-y-6 shadow-xl backdrop-blur-md">
         {/* Secret Key Display */}
         <div className="space-y-3">
-          <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
+          <label htmlFor="secret-key-input" className="text-xs font-semibold text-zinc-300 flex items-center gap-2 cursor-pointer">
             <Key className="w-4 h-4 text-amber-400" />
             <span>Khóa bí mật Base32 (Secret Key)</span>
           </label>
           <div className="flex items-center gap-2">
             <input
+              id="secret-key-input"
+              aria-label="Khóa bí mật Base32"
               type="text"
               readOnly
               value={data.formatted || data.secret || 'Đang tải...'}
-              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-amber-400"
+              className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-400 select-all"
             />
             <button
               onClick={handleCopy}
-              className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg flex items-center gap-1.5 border border-zinc-700"
+              className="min-h-[40px] px-3.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 border border-zinc-700/80 active:scale-95 transition-all cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
@@ -87,15 +89,15 @@ export const AuthSettingsPage: React.FC = () => {
 
         {/* Live TOTP Verification Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
-          <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800 flex items-center justify-between">
+          <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex items-center justify-between">
             <div>
-              <span className="text-xs text-zinc-500 block">Mã hiện tại trên máy chủ</span>
-              <span className="text-xl font-bold font-mono text-emerald-400 mt-1 block">
+              <span className="text-xs text-zinc-500 block font-medium">Mã hiện tại trên máy chủ</span>
+              <span className="text-2xl font-bold font-mono text-emerald-400 mt-1 block tracking-wider">
                 {data.currentCode || '------'}
               </span>
             </div>
             <div className="text-right">
-              <span className="text-xs text-zinc-500 block flex items-center gap-1 justify-end">
+              <span className="text-xs text-zinc-500 block flex items-center gap-1 justify-end font-medium">
                 <Clock className="w-3 h-3 text-zinc-400" /> Còn lại
               </span>
               <span className="text-lg font-bold font-mono text-zinc-300 mt-1 block">
@@ -104,10 +106,10 @@ export const AuthSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800 flex flex-col justify-between">
-            <span className="text-xs text-zinc-500">Thời hạn phiên làm việc</span>
+          <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex flex-col justify-between">
+            <span className="text-xs text-zinc-500 font-medium">Thời hạn phiên làm việc</span>
             <span className="text-sm font-semibold text-zinc-200 mt-1">24 giờ (Tự động thu hồi khi hết hạn)</span>
-            <span className="text-[10px] text-zinc-600 mt-1">HMAC-SHA256 Cookie ký an toàn</span>
+            <span className="text-[10px] text-zinc-600 mt-1 font-mono">HMAC-SHA256 Cookie ký an toàn</span>
           </div>
         </div>
 
@@ -119,7 +121,7 @@ export const AuthSettingsPage: React.FC = () => {
           <button
             onClick={handleRevoke}
             disabled={revoking}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-900/60 rounded-lg text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 border border-rose-900/60 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${revoking ? 'animate-spin' : ''}`} />
             <span>Thu hồi & Tạo khóa mới</span>

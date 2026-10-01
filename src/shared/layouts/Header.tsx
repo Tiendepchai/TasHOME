@@ -24,75 +24,79 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur border-b border-zinc-800/80 px-4 h-14 flex items-center justify-between">
-      {/* Brand */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-          <Radio className="w-4 h-4" />
+    <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 px-4 h-14 flex items-center">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm shadow-amber-500/10">
+            <Radio className="w-4 h-4" />
+          </div>
+          <div>
+            <h1 className="font-bold text-sm tracking-wide text-zinc-100 flex items-center gap-2">
+              TasHOME
+            </h1>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-sm tracking-wide text-zinc-100">
-            TasHOME
-          </h1>
+
+        {/* Nav Tabs */}
+        <nav className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800/80 text-xs">
+          <button
+            onClick={() => onSelectTab('dashboard')}
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
+              currentTab === 'dashboard'
+                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('devices')}
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
+              currentTab === 'devices'
+                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>Thiết bị</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('auth')}
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
+              currentTab === 'auth'
+                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Bảo mật 2FA</span>
+          </button>
+        </nav>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Làm mới trạng thái"
+            aria-label="Làm mới trạng thái toàn hệ thống"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-400' : ''}`} />
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="min-h-[40px] px-3.5 text-xs font-semibold text-zinc-400 hover:text-rose-400 bg-zinc-900/90 hover:bg-rose-950/20 border border-zinc-800/80 hover:border-rose-900/40 rounded-xl transition-all active:scale-95 cursor-pointer"
+            aria-label="Khóa phiên làm việc"
+          >
+            Khóa
+          </button>
         </div>
-      </div>
-
-      {/* Nav Tabs */}
-      <nav className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-lg border border-zinc-800 text-xs">
-        <button
-          onClick={() => onSelectTab('dashboard')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
-            currentTab === 'dashboard'
-              ? 'bg-amber-500 text-zinc-950 font-bold'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <LayoutDashboard className="w-3.5 h-3.5" />
-          <span>Dashboard</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('devices')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
-            currentTab === 'devices'
-              ? 'bg-amber-500 text-zinc-950 font-bold'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Cpu className="w-3.5 h-3.5" />
-          <span>Thiết bị</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('auth')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
-            currentTab === 'auth'
-              ? 'bg-amber-500 text-zinc-950 font-bold'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Shield className="w-3.5 h-3.5" />
-          <span>Bảo mật 2FA</span>
-        </button>
-      </nav>
-
-      {/* Right Actions */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors"
-          title="Làm mới trạng thái"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-400' : ''}`} />
-        </button>
-
-        <button
-          onClick={onLogout}
-          className="px-2.5 py-1 text-xs font-medium text-zinc-400 hover:text-rose-400 bg-zinc-900 hover:bg-rose-950/30 border border-zinc-800 hover:border-rose-900/50 rounded-lg transition-colors"
-        >
-          Khóa
-        </button>
       </div>
     </header>
   );

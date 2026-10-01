@@ -163,7 +163,7 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95"
+            className="min-h-[40px] flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm Widget</span>
@@ -171,8 +171,9 @@ export const DashboardPage: React.FC = () => {
 
           <button
             onClick={resetDefaultLayout}
-            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 text-xs transition-colors"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 text-xs transition-colors active:scale-95 cursor-pointer"
             title="Khôi phục mặc định"
+            aria-label="Khôi phục bố cục mặc định"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -354,7 +355,8 @@ export const DashboardPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                aria-label="Đóng cửa sổ thêm widget"
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -67,7 +67,7 @@ export const App: React.FC = () => {
 
   if (authenticated === null) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono text-xs">
+      <div className="min-h-[100dvh] bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono text-xs">
         Khởi tạo TasHOME Dashboard...
       </div>
     );
@@ -79,7 +79,7 @@ export const App: React.FC = () => {
 
   if (!hydrated) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center space-y-3 text-zinc-400 font-mono text-xs">
+      <div className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center justify-center space-y-3 text-zinc-400 font-mono text-xs">
         <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
         <span>Đang đồng bộ dữ liệu từ server...</span>
       </div>
@@ -87,7 +87,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+    <div className="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-amber-500/20">
       <Header currentTab={tab} onSelectTab={setTab} onLogout={handleLogout} />
       <main className="flex-1 pb-16">
         {tab === 'dashboard' && <DashboardPage />}

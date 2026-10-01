@@ -23,7 +23,7 @@ export const TASMOTA_DEFAULTS = {
 };
 
 export const APP_CONFIG = {
-  APP_NAME: 'TasHOME — Tasmota Dashboard',
+  APP_NAME: 'TasHOME - Tasmota Dashboard',
   STORAGE_KEY_DEVICES: 'astra-devices',
   STORAGE_KEY_DASHBOARDS: 'astra-dashboards',
   STORAGE_KEY_SETTINGS: 'astra-settings',

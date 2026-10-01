@@ -283,13 +283,13 @@ export const QuickActionBar: React.FC = () => {
                       className="p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-zinc-850 flex items-center justify-center text-amber-400 flex-none">
+                        <div className="w-7 h-7 rounded-lg bg-zinc-800/80 flex items-center justify-center text-amber-400 flex-none">
                           <Icon className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-bold text-xs text-zinc-100 truncate">{sc.name}</h4>
                           <span className="text-[10px] text-zinc-500 font-mono block truncate">
-                            {sc.actions?.[0]?.command || '—'}
+                            {sc.actions?.[0]?.command || '-'}
                           </span>
                         </div>
                       </div>
