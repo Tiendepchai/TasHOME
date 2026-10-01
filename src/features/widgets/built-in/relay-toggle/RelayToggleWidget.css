@@ -119,13 +119,36 @@
   z-index: 2;
 }
 
-/* Single Channel 1x1 Hero Button */
+/* Single Channel 1x1 Hero Button & Mitosis Cell Division */
 .relay-widget .rw-hero-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
+  position: relative;
+  width: 100%;
+}
+
+.relay-widget .rw-mitosis-stage {
+  --cell-size-undivided: 92px;
+  --cell-size-divided: 70px;
+  --cell-gap: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  min-height: 96px;
+  transition: gap 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="false"] {
+  gap: 0;
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="true"] {
+  gap: var(--cell-gap);
 }
 
 .relay-widget .rw-toggle-btn {
@@ -142,6 +165,8 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 10px;
+  position: relative;
+  user-select: none;
 }
 
 .relay-widget .rw-toggle-btn:hover:not(:disabled) {
@@ -162,14 +187,208 @@
 }
 
 .relay-widget .rw-hero-toggle {
-  width: 96px;
-  height: 96px;
   border-radius: 50%;
+  transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease,
+              border-color 0.2s ease,
+              background 0.2s ease;
 }
 
-.relay-widget .rw-hero-toggle svg {
+/* Undivided Mother Cell */
+.relay-widget .rw-mitosis-stage[data-divided="false"] .rw-mother-cell {
+  width: var(--cell-size-undivided);
+  height: var(--cell-size-undivided);
+  z-index: 5;
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="false"] .rw-mother-cell svg {
   width: 32px;
   height: 32px;
+}
+
+/* 2s Hover Preparation: Membrane tension & Bio-breathing */
+.relay-widget .rw-mitosis-stage[data-preparing="true"] .rw-mother-cell {
+  animation: rw-mitosis-prep 1s ease-in-out infinite;
+  box-shadow: 0 0 16px var(--rw-accent-glow), 0 0 0 2px rgba(245, 158, 11, 0.4);
+}
+
+@keyframes rw-mitosis-prep {
+  0%, 100% {
+    transform: scale(1);
+    border-radius: 50%;
+  }
+  30% {
+    transform: scaleX(1.06) scaleY(0.96);
+    border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+  }
+  70% {
+    transform: scaleX(0.97) scaleY(1.05);
+    border-radius: 54% 46% 52% 48% / 48% 52% 48% 52%;
+  }
+}
+
+/* SVG Prep Ring filling over 2 seconds */
+.relay-widget .rw-prep-ring {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  pointer-events: none;
+  z-index: 10;
+  transform: rotate(-90deg);
+}
+
+.relay-widget .rw-prep-ring circle {
+  fill: none;
+  stroke: var(--rw-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 289;
+  stroke-dashoffset: 289;
+  animation: rw-ring-fill 2s linear forwards;
+}
+
+@keyframes rw-ring-fill {
+  from {
+    stroke-dashoffset: 289;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Divided State: Mother cell moves left symmetrically */
+.relay-widget .rw-mitosis-stage[data-divided="true"] .rw-mother-cell {
+  width: var(--cell-size-divided);
+  height: var(--cell-size-divided);
+  z-index: 5;
+  animation: rw-cell-divide-left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="true"] .rw-mother-cell svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Daughter Cell (Timer Button) */
+.relay-widget .rw-mitosis-stage[data-divided="false"] .rw-daughter-cell {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cell-size-undivided);
+  height: var(--cell-size-undivided);
+  transform: translate(-50%, -50%) scale(0.1);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="true"] .rw-daughter-cell {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: var(--cell-size-divided);
+  height: var(--cell-size-divided);
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 5;
+  animation: rw-cell-divide-right 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.relay-widget .rw-mitosis-stage[data-divided="true"] .rw-daughter-cell svg {
+  width: 24px;
+  height: 24px;
+}
+
+.relay-widget .rw-daughter-cell[data-active="true"] {
+  border-color: var(--rw-accent);
+  color: var(--rw-accent);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+  box-shadow: 0 0 20px var(--rw-accent-glow);
+}
+
+/* Cytokinesis Keyframes: Mother cell moving left */
+@keyframes rw-cell-divide-left {
+  0% {
+    transform: translateX(35px) scale(1.1);
+    border-radius: 50%;
+  }
+  30% {
+    transform: translateX(12px) scaleX(1.25) scaleY(0.85);
+    border-radius: 60% 40% 40% 60% / 50%;
+  }
+  65% {
+    transform: translateX(-4px) scale(0.94);
+    border-radius: 50%;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    border-radius: 50%;
+  }
+}
+
+/* Cytokinesis Keyframes: Daughter cell budding out to the right */
+@keyframes rw-cell-divide-right {
+  0% {
+    transform: translateX(-35px) scale(0.2);
+    opacity: 0;
+    filter: blur(4px);
+    border-radius: 50%;
+  }
+  30% {
+    transform: translateX(-12px) scaleX(1.25) scaleY(0.85);
+    opacity: 0.85;
+    filter: blur(1px);
+    border-radius: 40% 60% 60% 40% / 50%;
+  }
+  65% {
+    transform: translateX(4px) scale(1.06);
+    opacity: 1;
+    filter: blur(0);
+    border-radius: 50%;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    border-radius: 50%;
+    filter: blur(0);
+  }
+}
+
+/* Transient Cleavage Furrow Connecting Membrane */
+.relay-widget .rw-mitosis-stage[data-divided="true"]::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 20px;
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  animation: rw-cleavage-furrow 0.5s ease-out forwards;
+}
+
+@keyframes rw-cleavage-furrow {
+  0% {
+    width: 55px;
+    height: 30px;
+    opacity: 0.85;
+  }
+  40% {
+    width: 25px;
+    height: 10px;
+    opacity: 0.5;
+  }
+  100% {
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
 }
 
 .relay-widget .rw-btn-label {
@@ -428,9 +647,10 @@
 }
 
 @container relay (max-width: 240px) {
-  .relay-widget .rw-hero-toggle {
-    width: 64px;
-    height: 64px;
+  .relay-widget .rw-mitosis-stage {
+    --cell-size-undivided: 80px;
+    --cell-size-divided: 62px;
+    --cell-gap: 12px;
   }
   .relay-widget .rw-hero-toggle svg {
     width: 24px;
@@ -438,6 +658,14 @@
   }
   .relay-widget .rw-pulsetime-wrap {
     display: none;
+  }
+}
+
+@container relay (max-width: 190px) {
+  .relay-widget .rw-mitosis-stage {
+    --cell-size-undivided: 68px;
+    --cell-size-divided: 52px;
+    --cell-gap: 8px;
   }
 }
 

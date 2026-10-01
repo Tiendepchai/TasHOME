@@ -54,6 +54,58 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
   // Live countdown remaining in seconds
   const [countdownRemaining, setCountdownRemaining] = useState<Record<string, number>>({});
 
+  // Mitosis cell division state for 2s hover on hero toggle
+  const [isDivided, setIsDivided] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const isDividedRef = React.useRef(false);
+  isDividedRef.current = isDivided;
+  const hoverTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startMitosisHover = () => {
+    if (isDividedRef.current) return;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setIsPreparing(true);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsDivided(true);
+      setIsPreparing(false);
+    }, 2000);
+  };
+
+  const cancelMitosisHover = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsPreparing(false);
+  };
+
+  const handleClusterMouseEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handleClusterMouseLeave = () => {
+    cancelMitosisHover();
+    if (isDividedRef.current) {
+      closeTimeoutRef.current = setTimeout(() => {
+        setIsDivided(false);
+      }, 1500);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
   if (!device) {
     return (
       <article
@@ -270,21 +322,66 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               const isBusy = !!toggling[key];
               const remainingSecs = countdownRemaining[key] ?? 0;
 
+              const chNum = parseInt(key.replace(/\D/g, '') || '1', 10);
+              const channelName =
+                device.relayLabels?.[key] ||
+                device.friendlyNames?.[chNum - 1] ||
+                `${t('channelLabel')} ${chNum}`;
+              const pulse = state?.pulseTimes?.[key];
+              const isArmed = (pulse?.set ?? 0) > 0;
+
               return (
                 <div className="rw-hero-box">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(key)}
-                    disabled={!isOnline || isBusy}
-                    data-active={isActive ? 'true' : 'false'}
-                    aria-pressed={isActive}
-                    aria-label={`${device.friendlyName}: ${isActive ? t('stateOn') : t('stateOff')}`}
-                    className="rw-toggle-btn rw-hero-toggle"
+                  <div
+                    className="rw-mitosis-stage"
+                    data-divided={isDivided ? 'true' : 'false'}
+                    data-preparing={isPreparing ? 'true' : 'false'}
+                    onMouseEnter={handleClusterMouseEnter}
+                    onMouseLeave={handleClusterMouseLeave}
                   >
-                    <Power aria-hidden="true" />
-                    <span className="rw-btn-label">{isActive ? t('btnOn') : t('btnOff')}</span>
-                  </button>
-                  {isActive && remainingSecs > 0 && (
+                    {/* Mother cell: Power toggle button */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(key)}
+                      onMouseEnter={startMitosisHover}
+                      onMouseLeave={cancelMitosisHover}
+                      onTouchStart={startMitosisHover}
+                      onTouchEnd={cancelMitosisHover}
+                      disabled={!isOnline || isBusy}
+                      data-active={isActive ? 'true' : 'false'}
+                      aria-pressed={isActive}
+                      aria-label={`${device.friendlyName}: ${isActive ? t('stateOn') : t('stateOff')}`}
+                      className="rw-toggle-btn rw-hero-toggle rw-mother-cell"
+                    >
+                      <Power aria-hidden="true" />
+                      <span className="rw-btn-label">{isActive ? t('btnOn') : t('btnOff')}</span>
+
+                      {/* 2-second hover countdown ring */}
+                      {isPreparing && (
+                        <svg className="rw-prep-ring" viewBox="0 0 100 100" aria-hidden="true">
+                          <circle cx="50" cy="50" r="46" />
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Daughter cell: Timer button appearing symmetrically next to power button */}
+                    <button
+                      type="button"
+                      onClick={() => setCustomModalChannel({ chNum, key, name: channelName })}
+                      disabled={!isOnline}
+                      className="rw-toggle-btn rw-hero-toggle rw-hero-timer-cell rw-daughter-cell"
+                      data-active={isArmed ? 'true' : 'false'}
+                      title={t('timeCustomTitle')}
+                      aria-label={t('timeCustomTitle')}
+                    >
+                      <Clock aria-hidden="true" />
+                      <span className="rw-btn-label">
+                        {remainingSecs > 0 ? formatCountdown(remainingSecs) : t('btnTimer')}
+                      </span>
+                    </button>
+                  </div>
+
+                  {!isDivided && isActive && remainingSecs > 0 && (
                     <div className="rw-countdown-badge" title={t('activeTimerRemaining')}>
                       <Clock aria-hidden="true" />
                       <span>{formatCountdown(remainingSecs)}</span>

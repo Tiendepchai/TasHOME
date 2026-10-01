@@ -166,6 +166,7 @@ export const translations = {
     stateOff: 'Đang tắt',
     btnOn: 'BẬT',
     btnOff: 'TẮT',
+    btnTimer: 'HẸN GIỜ',
     channelLabel: 'Kênh',
     setTimerAria: 'Đặt tự tắt',
 
@@ -491,6 +492,7 @@ export const translations = {
     stateOff: 'Inactive',
     btnOn: 'ON',
     btnOff: 'OFF',
+    btnTimer: 'TIMER',
     channelLabel: 'Channel',
     setTimerAria: 'Set auto-off',
 
@@ -816,6 +818,7 @@ export const translations = {
     stateOff: 'Ausgeschaltet',
     btnOn: 'EIN',
     btnOff: 'AUS',
+    btnTimer: 'TIMER',
     channelLabel: 'Kanal',
     setTimerAria: 'Autom. Abschaltung einstellen auf',
 
