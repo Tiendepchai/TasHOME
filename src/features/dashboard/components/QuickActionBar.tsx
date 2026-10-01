@@ -19,6 +19,7 @@ import {
   ZapOff
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { useTranslation } from '@/core/i18n';
 
 export interface SceneAction {
   type: 'broadcast' | 'device';
@@ -49,6 +50,7 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
 export const QuickActionBar: React.FC = () => {
   const { devices, deviceStates } = useDeviceStore();
   const { addToast } = useToast();
+  const { t } = useTranslation();
   const deviceList = Object.values(devices);
   const onlineDevices = deviceList.filter((d) => deviceStates[d.id]?.online);
 
@@ -95,12 +97,12 @@ export const QuickActionBar: React.FC = () => {
       });
       if (res.ok) {
         setTimeout(() => pollScheduler.pollNow(), 300);
-        addToast(`Đã kích hoạt ngữ cảnh "${scene.name}"`, 'success');
+        addToast(`${t('toastSceneExecuted')} "${scene.name}"`, 'success');
       } else {
-        addToast(`Không thể thực thi ngữ cảnh "${scene.name}"`, 'error');
+        addToast(`${t('toastSceneFailed')} "${scene.name}"`, 'error');
       }
     } catch {
-      addToast('Lỗi kết nối khi gửi lệnh ngữ cảnh', 'error');
+      addToast(t('toastSceneNetworkError'), 'error');
     } finally {
       setTimeout(() => setExecutingSceneId(null), 600);
     }
@@ -111,7 +113,7 @@ export const QuickActionBar: React.FC = () => {
     setLoadingAction('sync');
     try {
       await pollScheduler.pollNow();
-      addToast('Đã đồng bộ trạng thái toàn mạng', 'info');
+      addToast(t('toastNetworkSynced'), 'info');
     } finally {
       setTimeout(() => setLoadingAction(null), 500);
     }
@@ -135,16 +137,16 @@ export const QuickActionBar: React.FC = () => {
       });
 
       if (res.ok) {
-        addToast(`Đã tạo ngữ cảnh "${newSceneName.trim()}"`, 'success');
+        addToast(`${t('toastSceneCreated')} "${newSceneName.trim()}"`, 'success');
         setNewSceneName('');
         setNewSceneDesc('');
         setNewSceneCommand('POWER1 TOGGLE');
         await fetchScenes();
       } else {
-        addToast('Lỗi khi lưu ngữ cảnh', 'error');
+        addToast(t('toastSceneSaveError'), 'error');
       }
     } catch {
-      addToast('Không thể kết nối máy chủ để lưu ngữ cảnh', 'error');
+      addToast(t('toastSceneNetworkError'), 'error');
     } finally {
       setSavingScene(false);
     }
@@ -157,12 +159,12 @@ export const QuickActionBar: React.FC = () => {
       });
       if (res.ok) {
         setScenes((prev) => prev.filter((s) => s.id !== id));
-        addToast(`Đã xóa ngữ cảnh "${name}"`, 'info');
+        addToast(`${t('toastSceneDeleted')} "${name}"`, 'info');
       } else {
-        addToast('Không thể xóa ngữ cảnh', 'error');
+        addToast(t('toastSceneDeleteError'), 'error');
       }
     } catch {
-      addToast('Lỗi khi xóa ngữ cảnh', 'error');
+      addToast(t('toastSceneNetworkError'), 'error');
     }
   };
 
@@ -175,7 +177,7 @@ export const QuickActionBar: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-zinc-400">Trực tuyến:</span>
+            <span className="text-zinc-400">{t('onlineCountLabel')}</span>
             <span className="font-bold text-zinc-100 font-mono">
               {onlineDevices.length}/{deviceList.length}
             </span>
@@ -188,9 +190,9 @@ export const QuickActionBar: React.FC = () => {
                 activeRelayCount > 0 ? 'bg-amber-400' : 'bg-zinc-600'
               )}
             />
-            <span className="text-zinc-400">Đang bật:</span>
+            <span className="text-zinc-400">{t('activeRelaysLabel')}</span>
             <span className="font-bold text-amber-400 font-mono">
-              {activeRelayCount} tải
+              {activeRelayCount} {t('loadsUnit')}
             </span>
           </div>
         </div>
@@ -200,6 +202,26 @@ export const QuickActionBar: React.FC = () => {
           {scenes.map((scene) => {
             const Icon = ICON_MAP[scene.icon || 'Sparkles'] || Sparkles;
             const isRunning = executingSceneId === scene.id;
+
+            // Localize built-in scenes
+            const localizedName =
+              scene.id === 'scene-all-on'
+                ? t('sceneAllOn')
+                : scene.id === 'scene-all-off'
+                ? t('sceneAllOff')
+                : scene.id === 'scene-doorbell'
+                ? t('sceneDoorbell')
+                : scene.name;
+
+            const localizedDesc =
+              scene.id === 'scene-all-on'
+                ? t('sceneAllOnDesc')
+                : scene.id === 'scene-all-off'
+                ? t('sceneAllOffDesc')
+                : scene.id === 'scene-doorbell'
+                ? t('sceneDoorbellDesc')
+                : scene.description || scene.name;
+
             return (
               <button
                 key={scene.id}
@@ -212,10 +234,10 @@ export const QuickActionBar: React.FC = () => {
                     ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30 hover:border-amber-500/50'
                     : 'bg-zinc-800/60 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80'
                 )}
-                title={scene.description || scene.name}
+                title={localizedDesc}
               >
                 <Icon className={cn('w-4 h-4', isRunning && 'animate-spin text-amber-400')} />
-                <span>{scene.name}</span>
+                <span>{localizedName}</span>
               </button>
             );
           })}
@@ -224,8 +246,8 @@ export const QuickActionBar: React.FC = () => {
             type="button"
             onClick={() => setShowSceneModal(true)}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-700/80 text-xs transition-colors cursor-pointer"
-            title="Quản lý Ngữ Cảnh & Presets"
-            aria-label="Quản lý Ngữ Cảnh & Presets"
+            title={t('managePresets')}
+            aria-label={t('managePresets')}
           >
             <SlidersHorizontal className="w-4 h-4" />
           </button>
@@ -235,8 +257,8 @@ export const QuickActionBar: React.FC = () => {
             onClick={handleQuickSync}
             disabled={!!loadingAction}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-700/80 text-xs transition-colors active:scale-95 cursor-pointer"
-            title="Đồng bộ toàn mạng"
-            aria-label="Đồng bộ toàn mạng"
+            title={t('syncNetwork')}
+            aria-label={t('syncNetwork')}
           >
             <RefreshCw
               className={cn('w-4 h-4', loadingAction === 'sync' && 'animate-spin text-amber-400')}
@@ -255,15 +277,15 @@ export const QuickActionBar: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-zinc-100">Quản lý Ngữ Cảnh & Presets</h3>
-                  <p className="text-[11px] text-zinc-500">Tạo lệnh kịch bản 1-chạm gửi tới toàn bộ thiết bị</p>
+                  <h3 className="font-bold text-sm text-zinc-100">{t('scenesModalTitle')}</h3>
+                  <p className="text-[11px] text-zinc-500">{t('scenesModalDesc')}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSceneModal(false)}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-zinc-200 rounded-xl"
-                aria-label="Đóng cửa sổ"
+                aria-label={t('close')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -272,7 +294,7 @@ export const QuickActionBar: React.FC = () => {
             {/* Existing Scenes List */}
             <div className="space-y-2">
               <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-                Ngữ cảnh hiện tại ({scenes.length})
+                {t('currentScenes')} ({scenes.length})
               </span>
               <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
                 {scenes.map((sc) => {
@@ -298,8 +320,8 @@ export const QuickActionBar: React.FC = () => {
                         type="button"
                         onClick={() => handleDeleteScene(sc.id, sc.name)}
                         className="min-w-[36px] min-h-[36px] flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        title="Xóa ngữ cảnh"
-                        aria-label={`Xóa ngữ cảnh ${sc.name}`}
+                        title={t('deleteScene')}
+                        aria-label={`${t('deleteScene')}: ${sc.name}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -312,48 +334,48 @@ export const QuickActionBar: React.FC = () => {
             {/* Create Scene Form */}
             <form onSubmit={handleCreateScene} className="space-y-3 pt-3 border-t border-zinc-800">
               <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-                Thêm Ngữ Cảnh Mới
+                {t('addNewScene')}
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
-                    Tên ngữ cảnh *
+                    {t('sceneNameLabel')}
                   </label>
                   <input
                     type="text"
                     required
                     value={newSceneName}
                     onChange={(e) => setNewSceneName(e.target.value)}
-                    placeholder="Vd: Chế độ ban đêm"
+                    placeholder={t('sceneNamePlaceholder')}
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none font-medium"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
-                    Biểu tượng
+                    {t('sceneIconLabel')}
                   </label>
                   <select
                     value={newSceneIcon}
                     onChange={(e) => setNewSceneIcon(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none"
                   >
-                    <option value="Sparkles">Sparkles (Mặc định)</option>
-                    <option value="Power">Power (Nguồn)</option>
-                    <option value="ZapOff">ZapOff (Tắt nguồn)</option>
-                    <option value="Bell">Bell (Chuông)</option>
-                    <option value="Sun">Sun (Ban ngày)</option>
-                    <option value="Moon">Moon (Ban đêm)</option>
-                    <option value="Coffee">Coffee (Thư giãn)</option>
-                    <option value="Shield">Shield (Bảo vệ)</option>
+                    <option value="Sparkles">Sparkles</option>
+                    <option value="Power">Power</option>
+                    <option value="ZapOff">ZapOff</option>
+                    <option value="Bell">Bell</option>
+                    <option value="Sun">Sun</option>
+                    <option value="Moon">Moon</option>
+                    <option value="Coffee">Coffee</option>
+                    <option value="Shield">Shield</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
-                  Lệnh Tasmota gửi tới thiết bị *
+                  {t('sceneCommandLabel')}
                 </label>
                 <input
                   type="text"
@@ -364,7 +386,7 @@ export const QuickActionBar: React.FC = () => {
                   className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-mono text-zinc-100 focus:outline-none"
                 />
                 <span className="text-[10px] text-zinc-500 mt-1 block">
-                  Ví dụ: <code className="text-amber-400">POWER1 ON</code>, <code className="text-amber-400">Backlog POWER1 OFF; Delay 5; POWER2 OFF</code>
+                  {t('sceneCommandExample')} <code className="text-amber-400">POWER1 ON</code>, <code className="text-amber-400">Backlog POWER1 OFF; Delay 5; POWER2 OFF</code>
                 </span>
               </div>
 
@@ -379,7 +401,7 @@ export const QuickActionBar: React.FC = () => {
                   ) : (
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                   )}
-                  <span>Thêm Ngữ Cảnh</span>
+                  <span>{t('addSceneBtn')}</span>
                 </button>
               </div>
             </form>

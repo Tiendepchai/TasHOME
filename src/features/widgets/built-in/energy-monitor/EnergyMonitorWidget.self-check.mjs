@@ -68,7 +68,7 @@ try {
       assert.ok(html.includes('850 W'), `Layout ${col}x${row} power missing`);
       assert.ok(html.includes('220 V'), `Layout ${col}x${row} voltage missing`);
       assert.ok(html.includes('3.86 A'), `Layout ${col}x${row} current missing`);
-      assert.ok(html.includes('Online'), `Layout ${col}x${row} online status missing`);
+      assert.ok(html.includes('Online') || html.includes('Trực tuyến'), `Layout ${col}x${row} online status missing`);
     }
   }
 
@@ -139,7 +139,7 @@ try {
     lastSeen: Date.now() - 60000
   };
   const htmlOffline = render(2, 1, stateOffline);
-  assert.ok(htmlOffline.includes('Offline · Dữ liệu cũ'), 'Offline message missing');
+  assert.ok(htmlOffline.includes('Offline · Dữ liệu cũ') || htmlOffline.includes('Ngoại tuyến · Dữ liệu cũ'), 'Offline message missing');
 
   // 6. Waiting state
   const stateWaiting = {

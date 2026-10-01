@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Delete } from 'lucide-react';
+import { useTranslation } from '@/core/i18n';
+import { LanguageSelector } from '@/shared/components/LanguageSelector';
 
 interface PinLockScreenProps {
   onSuccess: () => void;
 }
 
 export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onSuccess }) => {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +46,11 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onSuccess }) => {
       if (data.success) {
         onSuccess();
       } else {
-        setError(data.error || 'Mã 2FA không chính xác');
+        setError(data.error || t('wrongTotpCode'));
         setCode('');
       }
-    } catch (err: any) {
-      setError('Lỗi kết nối máy chủ xác thực');
+    } catch {
+      setError(t('serverAuthError'));
       setCode('');
     } finally {
       setLoading(false);
@@ -55,16 +58,20 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center justify-center p-4 selection:bg-amber-500/20">
+    <div className="relative min-h-[100dvh] bg-zinc-950 flex flex-col items-center justify-center p-4 selection:bg-amber-500/20">
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSelector />
+      </div>
+
       <div className="w-full max-w-sm bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-xl flex flex-col items-center">
         {/* Header Icon */}
         <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-inner">
           <ShieldCheck className="w-8 h-8" />
         </div>
 
-        <h2 className="text-lg font-bold text-zinc-100">Xác thực 2FA TOTP</h2>
+        <h2 className="text-lg font-bold text-zinc-100">{t('totpAuthTitle')}</h2>
         <p className="text-xs text-zinc-400 mt-1 text-center">
-          Nhập mã 6 chữ số từ ứng dụng Google Authenticator
+          {t('totpAuthSubtitle')}
         </p>
 
         {/* 6 Digit Display */}
@@ -107,7 +114,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onSuccess }) => {
             onClick={handleClear}
             className="h-13 rounded-xl bg-zinc-950/40 hover:bg-zinc-800 text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer active:scale-95 border border-transparent hover:border-zinc-800"
           >
-            Xóa hết
+            {t('clearAll')}
           </button>
           <button
             type="button"
@@ -120,7 +127,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onSuccess }) => {
           <button
             type="button"
             onClick={handleDelete}
-            aria-label="Xóa 1 chữ số"
+            aria-label={t('deleteOne')}
             className="h-13 rounded-xl bg-zinc-950/40 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors cursor-pointer active:scale-95 border border-transparent hover:border-zinc-800"
           >
             <Delete className="w-5 h-5" />

@@ -1,12 +1,13 @@
 import React from 'react';
 import type { WidgetProps } from '@/features/widgets/registry/widget-types';
-import { Thermometer, Gauge, Activity, Radio, Droplets, Zap, Sun } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { Thermometer, Gauge, Activity, Droplets, Zap, Sun } from 'lucide-react';
+import { useTranslation } from '@/core/i18n';
 
 export const SensorDisplayWidget: React.FC<WidgetProps> = ({
   devices,
   deviceStates
 }) => {
+  const { t } = useTranslation();
   const device = devices[0];
   const state = device ? deviceStates[device.id] : undefined;
   const sensors = state?.sensors || {};
@@ -31,21 +32,21 @@ export const SensorDisplayWidget: React.FC<WidgetProps> = ({
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-zinc-100 text-sm tracking-tight">Cảm biến & Đo đạc</h3>
+            <h3 className="font-bold text-zinc-100 text-sm tracking-tight">{t('sensorHeading')}</h3>
             <p className="text-[10px] text-zinc-500">Telemetry Status 8 / 10</p>
           </div>
         </div>
         <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-zinc-950/80 border border-zinc-800 text-zinc-400">
-          {sensorEntries.length} chỉ số
+          {sensorEntries.length} {t('metricsUnit')}
         </span>
       </div>
 
       {sensorEntries.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-zinc-500 bg-zinc-950/40 rounded-xl border border-dashed border-zinc-800/80">
           <Gauge className="w-10 h-10 text-zinc-700 mb-2.5 stroke-[1.2]" />
-          <p className="text-xs font-semibold text-zinc-400">Chưa phát hiện cảm biến telemetry</p>
+          <p className="text-xs font-semibold text-zinc-400">{t('noSensorDetected')}</p>
           <span className="text-[11px] text-zinc-600 mt-1 max-w-xs">
-            Hệ thống tự động hiển thị khi thiết bị có cảm biến I2C/OneWire (DHT11/22, DS18B20, BME280, ADC).
+            {t('noSensorDesc')}
           </span>
         </div>
       ) : (

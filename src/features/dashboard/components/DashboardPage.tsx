@@ -8,6 +8,7 @@ import { QuickActionBar } from './QuickActionBar';
 import { Plus, RotateCcw, X, LayoutGrid, Sparkles, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useToast } from '@/shared/components/Toast';
+import { useTranslation } from '@/core/i18n';
 
 export const DashboardPage: React.FC = () => {
   const {
@@ -21,6 +22,7 @@ export const DashboardPage: React.FC = () => {
   } = useDashboardStore();
   const { devices, deviceStates } = useDeviceStore();
   const { addToast } = useToast();
+  const { t } = useTranslation();
 
   const activeDash = dashboards.find((d) => d.id === activeDashboardId) || dashboards[0];
   const [showAddModal, setShowAddModal] = useState(false);
@@ -154,10 +156,10 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold tracking-tight text-zinc-100">
-              {activeDash?.name || 'Bảng Điều Khiển'}
+              {activeDash?.name === 'Bảng Điều Khiển' || activeDash?.name === 'Bảng Điều Khiển Chính' || !activeDash?.name ? t('dashboardTitle') : activeDash.name}
             </h2>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">Điều khiển và giám sát thiết bị Tasmota thời gian thực</p>
+          <p className="text-xs text-zinc-400 mt-1">{t('dashboardSubtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -166,14 +168,14 @@ export const DashboardPage: React.FC = () => {
             className="min-h-[40px] flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm Widget</span>
+            <span>{t('addWidget')}</span>
           </button>
 
           <button
             onClick={resetDefaultLayout}
             className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 text-xs transition-colors active:scale-95 cursor-pointer"
-            title="Khôi phục mặc định"
-            aria-label="Khôi phục bố cục mặc định"
+            title={t('resetLayout')}
+            aria-label={t('resetLayout')}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -190,17 +192,15 @@ export const DashboardPage: React.FC = () => {
             <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <p className="text-zinc-200 text-sm font-bold">Bảng điều khiển hiện đang trống</p>
-            <p className="text-zinc-500 text-xs max-w-md">
-              Bấm "Thêm Widget" bên dưới để đưa công tắc Relay, bảng thông số phần cứng hoặc cảm biến lên màn hình chính.
-            </p>
+            <p className="text-zinc-200 text-sm font-bold">{t('emptyDashboardTitle')}</p>
+            <p className="text-zinc-500 text-xs max-w-md">{t('emptyDashboardDesc')}</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md transition-all active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Thêm Widget Ngay</span>
+            <span>{t('addWidgetNow')}</span>
           </button>
         </div>
       ) : (
@@ -247,7 +247,7 @@ export const DashboardPage: React.FC = () => {
                   e.preventDefault();
                   if (dragIndex !== null && dragIndex !== idx) {
                     reorderWidgets(dragIndex, idx);
-                    addToast('Đã sắp xếp lại vị trí widget', 'info');
+                    addToast(t('toastWidgetReordered'), 'info');
                   }
                   setDragIndex(null);
                   setDropIndex(null);
@@ -320,7 +320,7 @@ export const DashboardPage: React.FC = () => {
             e.stopPropagation();
             if (draggingInstanceId) {
               removeWidget(draggingInstanceId);
-              addToast('Đã xóa widget khỏi Dashboard', 'info');
+              addToast(t('toastWidgetRemoved'), 'info');
             }
             setDraggingInstanceId(null);
             setIsOverTrash(false);
@@ -333,7 +333,7 @@ export const DashboardPage: React.FC = () => {
               ? 'bg-rose-600 text-white border-rose-400 scale-125 shadow-[0_0_50px_rgba(244,63,94,0.7)] animate-bounce ring-4 ring-rose-400/40'
               : 'bg-zinc-900/90 text-zinc-400 border-zinc-700/80 hover:border-rose-500/50 hover:text-rose-400 scale-100 shadow-[0_10px_30px_rgba(0,0,0,0.8)]'
           )}
-          title="Thả vào đây để xóa widget"
+          title={t('dropToTrash')}
         >
           <Trash2
             className={cn(
@@ -350,12 +350,12 @@ export const DashboardPage: React.FC = () => {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div>
-                <h3 className="font-bold text-base text-zinc-100">Thêm Widget mới</h3>
-                <p className="text-xs text-zinc-400 mt-0.5">Chọn loại hiển thị muốn thêm vào Dashboard</p>
+                <h3 className="font-bold text-base text-zinc-100">{t('addWidgetModalTitle')}</h3>
+                <p className="text-xs text-zinc-400 mt-0.5">{t('addWidgetModalDesc')}</p>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                aria-label="Đóng cửa sổ thêm widget"
+                aria-label={t('closeAddModal')}
                 className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -367,7 +367,7 @@ export const DashboardPage: React.FC = () => {
               {Object.keys(devices).length > 0 ? (
                 <div>
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-                    Chọn thiết bị liên kết với widget
+                    {t('selectDeviceForWidget')}
                   </label>
                   <select
                     value={targetDeviceId || Object.keys(devices)[0] || ''}
@@ -383,16 +383,16 @@ export const DashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-xs">
-                  Chưa có thiết bị nào trong danh sách. Vui lòng chuyển sang tab "Thiết bị" để thêm trước.
+                  {t('noDevicesInList')}
                 </div>
               )}
 
               <div className="space-y-2.5">
                 {[
-                  { type: 'relay-toggle', name: 'Công tắc Relay', desc: 'Bật/tắt relay thiết bị (1CH - 4CH) & hẹn giờ PulseTime', defSpan: 1 },
-                  { type: 'energy-monitor', name: 'Giám sát Điện năng', desc: 'Công suất (W), điện áp (V), dòng điện (A), kWh tích lũy (9 kích cỡ)', defSpan: 2 },
-                  { type: 'device-info', name: 'Thông tin Phần cứng', desc: 'IP, MAC, cột sóng Wi-Fi, Uptime và Firmware', defSpan: 2 },
-                  { type: 'sensor-display', name: 'Cảm biến Telemetry', desc: 'Nhiệt độ, độ ẩm, điện áp và chỉ số mở rộng (Status 8)', defSpan: 1 }
+                  { type: 'relay-toggle', name: t('widgetRelayTitle'), desc: t('widgetRelayDesc'), defSpan: 1 },
+                  { type: 'energy-monitor', name: t('widgetEnergyTitle'), desc: t('widgetEnergyDesc'), defSpan: 2 },
+                  { type: 'device-info', name: t('widgetDeviceInfoTitle'), desc: t('widgetDeviceInfoDesc'), defSpan: 2 },
+                  { type: 'sensor-display', name: t('widgetSensorTitle'), desc: t('widgetSensorDesc'), defSpan: 1 }
                 ].map((item) => (
                   <button
                     key={item.type}
@@ -400,12 +400,12 @@ export const DashboardPage: React.FC = () => {
                     onClick={() => {
                       const devId = targetDeviceId || Object.keys(devices)[0];
                       if (!devId) {
-                        addToast('Vui lòng thêm thiết bị trước khi tạo widget', 'error');
+                        addToast(t('toastNeedDeviceFirst'), 'error');
                         return;
                       }
                       addWidget(item.type, [devId], item.name, item.defSpan as 1 | 2 | 3, 1);
                       setShowAddModal(false);
-                      addToast(`Đã thêm widget ${item.name}`, 'success');
+                      addToast(`${t('toastWidgetAdded')}: ${item.name}`, 'success');
                     }}
                     className="w-full text-left p-3.5 rounded-xl bg-zinc-950/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-500/40 transition-all flex flex-col group disabled:opacity-40 disabled:cursor-not-allowed"
                   >

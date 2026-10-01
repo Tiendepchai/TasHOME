@@ -8,6 +8,7 @@ import { PinLockScreen } from '@/core/auth/PinLockScreen';
 import { pollScheduler } from '@/core/http/poll-scheduler';
 import { useDeviceStore } from '@/features/devices/store/device-store';
 import { useDashboardStore } from '@/features/dashboard/store/dashboard-store';
+import { useLanguageStore } from '@/core/i18n';
 import { ToastContainer } from '@/shared/components/Toast';
 
 export const App: React.FC = () => {
@@ -39,7 +40,8 @@ export const App: React.FC = () => {
         try {
           await Promise.allSettled([
             useDeviceStore.getState().fetchDevices(),
-            useDashboardStore.getState().fetchDashboards()
+            useDashboardStore.getState().fetchDashboards(),
+            useLanguageStore.getState().fetchSettings()
           ]);
         } finally {
           if (isMounted) {

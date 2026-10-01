@@ -2,14 +2,16 @@
 import React, { useState } from 'react';
 import type { WidgetProps } from '@/features/widgets/registry/widget-types';
 import { Clock, Power, Wifi, WifiOff } from 'lucide-react';
+import { useTranslation } from '@/core/i18n';
+import type { TranslationKey } from '@/core/i18n/translations';
 import './RelayToggleWidget.css';
 
-const PULSE_TIME_PRESETS = [
-  { label: 'Tắt hẹn giờ', val: 0 },
-  { label: '1p', val: 160 },
-  { label: '5p', val: 400 },
-  { label: '15p', val: 1000 },
-  { label: '30p', val: 1900 },
+const PULSE_TIME_PRESETS: Array<{ key: TranslationKey; val: number }> = [
+  { key: 'timerOff', val: 0 },
+  { key: 'time1m', val: 160 },
+  { key: 'time5m', val: 400 },
+  { key: 'time15m', val: 1000 },
+  { key: 'time30m', val: 1900 },
 ];
 
 export const RelayToggleWidget: React.FC<WidgetProps> = ({
@@ -19,6 +21,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
   colSpan = 1,
   rowSpan = 1
 }) => {
+  const { t } = useTranslation();
   const device = devices[0];
   const state = device ? deviceStates[device.id] : undefined;
   const isOnline = !!state?.online;
@@ -36,11 +39,11 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
         data-layout={`${colSpan}x${rowSpan}`}
         data-channels="0"
         data-status="waiting"
-        aria-label="Điều khiển Relay"
+        aria-label={t('relayControl')}
       >
         <div className="rw-empty">
           <Power aria-hidden="true" />
-          <p>Chưa gán thiết bị cho widget này</p>
+          <p>{t('unassignedRelay')}</p>
         </div>
       </article>
     );
@@ -119,7 +122,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
       data-layout={`${colSpan}x${rowSpan}`}
       data-channels={powerKeys.length}
       data-status={status}
-      aria-label="Điều khiển Relay"
+      aria-label={t('relayControl')}
     >
       <div className="rw-layout">
         {/* Card Header */}
@@ -131,12 +134,12 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                 {isOnline ? (
                   <>
                     <Wifi aria-hidden="true" />
-                    <span>Online</span>
+                    <span>{t('online')}</span>
                   </>
                 ) : (
                   <>
                     <WifiOff aria-hidden="true" />
-                    <span>Offline</span>
+                    <span>{t('offline')}</span>
                   </>
                 )}
               </span>
@@ -163,11 +166,11 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     disabled={!isOnline || isBusy}
                     data-active={isActive ? 'true' : 'false'}
                     aria-pressed={isActive}
-                    aria-label={`${device.friendlyName}: ${isActive ? 'Đang bật' : 'Đang tắt'}`}
+                    aria-label={`${device.friendlyName}: ${isActive ? t('stateOn') : t('stateOff')}`}
                     className="rw-toggle-btn rw-hero-toggle"
                   >
                     <Power aria-hidden="true" />
-                    <span className="rw-btn-label">{isActive ? 'BẬT' : 'TẮT'}</span>
+                    <span className="rw-btn-label">{isActive ? t('btnOn') : t('btnOff')}</span>
                   </button>
                 </div>
               );
@@ -181,7 +184,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               const channelName =
                 device.relayLabels?.[key] ||
                 device.friendlyNames?.[chNum - 1] ||
-                `Kênh ${chNum}`;
+                `${t('channelLabel')} ${chNum}`;
 
               return (
                 <div key={key} className="rw-channel-card">
@@ -193,11 +196,11 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                       disabled={!isOnline || isBusy}
                       data-active={isActive ? 'true' : 'false'}
                       aria-pressed={isActive}
-                      aria-label={`${channelName}: ${isActive ? 'Đang bật' : 'Đang tắt'}`}
+                      aria-label={`${channelName}: ${isActive ? t('stateOn') : t('stateOff')}`}
                       className="rw-channel-switch"
                     >
                       <Power aria-hidden="true" />
-                      <span>{isActive ? 'BẬT' : 'TẮT'}</span>
+                      <span>{isActive ? t('btnOn') : t('btnOff')}</span>
                     </button>
                   </div>
 
@@ -205,7 +208,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                   <div className="rw-pulsetime-wrap">
                     <div className="rw-pulsetime-title">
                       <Clock aria-hidden="true" />
-                      <span>Tự tắt sau:</span>
+                      <span>{t('autoOffAfter')}</span>
                     </div>
                     {PULSE_TIME_PRESETS.map((preset) => (
                       <button
@@ -214,9 +217,9 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                         onClick={() => handlePulseTime(chNum, preset.val, key)}
                         disabled={!isOnline || !!pulseSending[key]}
                         className="rw-timer-chip"
-                        aria-label={`Đặt tự tắt ${preset.label} cho ${channelName}`}
+                        aria-label={`${t('setTimerAria')} ${t(preset.key)} - ${channelName}`}
                       >
-                        {preset.label}
+                        {t(preset.key)}
                       </button>
                     ))}
                   </div>

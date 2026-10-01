@@ -32,11 +32,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useToast } from '@/shared/components/Toast';
+import { useTranslation } from '@/core/i18n';
 import { formatUptime } from '@/shared/utils/tasmota-parsers';
 
 type TabType = 'controls' | 'network' | 'gpio' | 'settings';
 
 export const DeviceDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const { devices, deviceStates, addDevice, removeDevice, updateDevice, updateDeviceState } =
     useDeviceStore();
   const { addToast } = useToast();
@@ -346,13 +348,13 @@ export const DeviceDetailPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-                Quản lý Thiết bị Tasmota
+                {t('devicesManagementTitle')}
                 <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/70 text-zinc-400 font-mono">
-                  {deviceList.length} thiết bị
+                  {deviceList.length} {t('tabDevices')}
                 </span>
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Cấu hình IP phần cứng, sơ đồ chân GPIO, điều khiển tải và đồng bộ trạng thái
+                {t('devicesManagementSubtitle')}
               </p>
             </div>
           </div>
@@ -370,7 +372,7 @@ export const DeviceDetailPage: React.FC = () => {
             className="min-h-[44px] flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs border border-zinc-700/80 shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <Radio className="w-4 h-4 text-amber-400" />
-            <span>Quét Mạng LAN</span>
+            <span>{t('scanNetworkBtn')}</span>
           </button>
 
           <button
@@ -385,7 +387,7 @@ export const DeviceDetailPage: React.FC = () => {
             className="min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Thêm Thiết Bị</span>
+            <span>{t('addDeviceBtn')}</span>
           </button>
         </div>
       </div>
@@ -402,7 +404,7 @@ export const DeviceDetailPage: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm theo tên hoặc IP..."
+                placeholder={t('searchDevicePlaceholder')}
                 className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-amber-500/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
               />
               {searchQuery && (
@@ -426,7 +428,7 @@ export const DeviceDetailPage: React.FC = () => {
                     : 'text-zinc-400 hover:text-zinc-200'
                 )}
               >
-                Tất cả ({deviceList.length})
+                {t('filterAll')} ({deviceList.length})
               </button>
               <button
                 onClick={() => setStatusFilter('online')}
@@ -438,7 +440,7 @@ export const DeviceDetailPage: React.FC = () => {
                 )}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Online ({onlineCount})
+                {t('filterOnline')} ({onlineCount})
               </button>
               <button
                 onClick={() => setStatusFilter('offline')}
@@ -450,7 +452,7 @@ export const DeviceDetailPage: React.FC = () => {
                 )}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                Offline ({offlineCount})
+                {t('filterOffline')} ({offlineCount})
               </button>
             </div>
           </div>
@@ -577,12 +579,12 @@ export const DeviceDetailPage: React.FC = () => {
                     {activeState?.online ? (
                       <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Trực tuyến
+                        {t('online')}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
                         <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                        Ngoại tuyến
+                        {t('offline')}
                       </span>
                     )}
                     <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 text-zinc-400">
@@ -606,10 +608,10 @@ export const DeviceDetailPage: React.FC = () => {
                     onClick={handleSync}
                     disabled={syncing}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
-                    title="Gửi lệnh Status 0"
+                    title="Status 0"
                   >
                     <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin text-amber-400')} />
-                    <span>Đồng bộ</span>
+                    <span>{t('syncNetwork')}</span>
                   </button>
 
                   <a
@@ -617,7 +619,7 @@ export const DeviceDetailPage: React.FC = () => {
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-all active:scale-95 shadow-sm"
-                    title="Mở giao diện Web Tasmota gốc"
+                    title={t('openWebUi')}
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
                     <span>Web UI</span>
@@ -627,16 +629,16 @@ export const DeviceDetailPage: React.FC = () => {
                     onClick={() => setConfirmRestartId(activeDevice.id)}
                     disabled={actionLoading === 'restart' || !activeState?.online}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 text-zinc-200 hover:text-amber-300 text-xs font-semibold border border-zinc-700 hover:border-amber-500/40 transition-all active:scale-95 disabled:opacity-40 shadow-sm"
-                    title="Khởi động lại thiết bị (Restart 1)"
+                    title={t('restartDeviceBtn')}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restart</span>
+                    <span>{t('restartDeviceBtn')}</span>
                   </button>
 
                   <button
                     onClick={() => setConfirmDeleteId(activeDevice.id)}
                     className="p-2 rounded-xl bg-zinc-800/90 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-700 hover:border-rose-500/40 transition-all active:scale-95"
-                    title="Xóa thiết bị"
+                    title={t('deleteDeviceBtn')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -655,7 +657,7 @@ export const DeviceDetailPage: React.FC = () => {
                   )}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Điều khiển & Tải</span>
+                  <span>{t('tabControls')}</span>
                 </button>
 
                 <button
@@ -668,7 +670,7 @@ export const DeviceDetailPage: React.FC = () => {
                   )}
                 >
                   <Wifi className="w-3.5 h-3.5" />
-                  <span>Mạng & Thông số</span>
+                  <span>{t('tabNetwork')}</span>
                 </button>
 
                 <button
@@ -681,7 +683,7 @@ export const DeviceDetailPage: React.FC = () => {
                   )}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>Sơ đồ chân GPIO</span>
+                  <span>{t('tabGpio')}</span>
                 </button>
 
                 <button
@@ -694,7 +696,7 @@ export const DeviceDetailPage: React.FC = () => {
                   )}
                 >
                   <Sliders className="w-3.5 h-3.5" />
-                  <span>Cài đặt & Nhãn</span>
+                  <span>{t('tabSettings')}</span>
                 </button>
               </div>
 
@@ -704,9 +706,9 @@ export const DeviceDetailPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                       <Power className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Trạng thái Công Tắc / Relay</span>
+                      <span>{t('relayControl')}</span>
                     </h4>
-                    <span className="text-[11px] text-zinc-500">Chạm để bật/tắt trực tiếp</span>
+                    <span className="text-[11px] text-zinc-500">1CH - 2CH</span>
                   </div>
 
                   {/* Relay Direct Switch Cards */}
@@ -734,9 +736,9 @@ export const DeviceDetailPage: React.FC = () => {
                           </div>
                           <div>
                             <h5 className="font-bold text-xs text-zinc-100">
-                              {activeDevice.relayLabels?.POWER1 || 'Relay 1 (Tải chính)'}
+                              {activeDevice.relayLabels?.POWER1 || `${t('channelLabel')} 1`}
                             </h5>
-                            <span className="text-[10px] font-mono text-zinc-500">Chân: POWER1</span>
+                            <span className="text-[10px] font-mono text-zinc-500">{t('gpioPin')}: POWER1</span>
                           </div>
                         </div>
 
@@ -748,7 +750,7 @@ export const DeviceDetailPage: React.FC = () => {
                               : 'bg-zinc-900 text-zinc-500 border-zinc-800'
                           )}
                         >
-                          {activeState?.power?.POWER1 ? 'BẬT' : 'TẮT'}
+                          {activeState?.power?.POWER1 ? t('btnOn') : t('btnOff')}
                         </span>
                       </div>
 
@@ -763,7 +765,7 @@ export const DeviceDetailPage: React.FC = () => {
                         )}
                       >
                         <Power className="w-3.5 h-3.5" />
-                        <span>{activeState?.power?.POWER1 ? 'Nhấn để Tắt' : 'Nhấn để Bật'}</span>
+                        <span>{activeState?.power?.POWER1 ? t('btnOff') : t('btnOn')}</span>
                       </button>
                     </div>
 
@@ -790,9 +792,9 @@ export const DeviceDetailPage: React.FC = () => {
                           </div>
                           <div>
                             <h5 className="font-bold text-xs text-zinc-100">
-                              {activeDevice.relayLabels?.POWER2 || 'Relay 2 (Chuông cửa/Tải phụ)'}
+                              {activeDevice.relayLabels?.POWER2 || `${t('channelLabel')} 2`}
                             </h5>
-                            <span className="text-[10px] font-mono text-zinc-500">Chân: POWER2</span>
+                            <span className="text-[10px] font-mono text-zinc-500">{t('gpioPin')}: POWER2</span>
                           </div>
                         </div>
 
@@ -804,7 +806,7 @@ export const DeviceDetailPage: React.FC = () => {
                               : 'bg-zinc-900 text-zinc-500 border-zinc-800'
                           )}
                         >
-                          {activeState?.power?.POWER2 ? 'BẬT' : 'TẮT'}
+                          {activeState?.power?.POWER2 ? t('btnOn') : t('btnOff')}
                         </span>
                       </div>
 
@@ -819,7 +821,7 @@ export const DeviceDetailPage: React.FC = () => {
                         )}
                       >
                         <Power className="w-3.5 h-3.5" />
-                        <span>{activeState?.power?.POWER2 ? 'Nhấn để Tắt' : 'Nhấn để Bật'}</span>
+                        <span>{activeState?.power?.POWER2 ? t('btnOff') : t('btnOn')}</span>
                       </button>
                     </div>
                   </div>
@@ -829,29 +831,29 @@ export const DeviceDetailPage: React.FC = () => {
                     <div className="space-y-2.5 pt-3 border-t border-zinc-800/80">
                       <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                         <Gauge className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Thông số Điện Năng Tiêu Thụ</span>
+                        <span>{t('energyTelemetryTitle')}</span>
                       </h4>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-850">
-                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">Điện áp</span>
+                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">{t('voltage')}</span>
                           <div className="mt-1 font-mono text-amber-400 font-bold text-sm">
                             {activeState.energy.voltage} V
                           </div>
                         </div>
                         <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-850">
-                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">Dòng điện</span>
+                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">{t('current')}</span>
                           <div className="mt-1 font-mono text-amber-400 font-bold text-sm">
                             {activeState.energy.current} A
                           </div>
                         </div>
                         <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-850">
-                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">Công suất</span>
+                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">{t('activePower')}</span>
                           <div className="mt-1 font-mono text-emerald-400 font-bold text-sm">
                             {activeState.energy.power} W
                           </div>
                         </div>
                         <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-850">
-                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">Hôm nay</span>
+                          <span className="text-[10px] text-zinc-500 uppercase font-semibold">{t('today')}</span>
                           <div className="mt-1 font-mono text-zinc-200 font-bold text-sm">
                             {activeState.energy.today} kWh
                           </div>
@@ -869,7 +871,7 @@ export const DeviceDetailPage: React.FC = () => {
                     {/* Wi-Fi Signal Meter */}
                     <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-zinc-800/80 space-y-1">
                       <span className="text-[10px] uppercase text-zinc-500 font-semibold flex items-center gap-1.5">
-                        <Wifi className="w-3.5 h-3.5 text-amber-400" /> Cột sóng Wi-Fi
+                        <Wifi className="w-3.5 h-3.5 text-amber-400" /> {t('wifiSignalMeter')}
                       </span>
                       <div className="mt-1 font-mono text-zinc-100 font-bold text-base flex items-baseline gap-1">
                         {activeState?.wifi?.signal !== undefined ? `${activeState.wifi.signal}%` : 'N/A'}
@@ -893,18 +895,18 @@ export const DeviceDetailPage: React.FC = () => {
                     {/* Standardized Uptime */}
                     <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-zinc-800/80 space-y-1">
                       <span className="text-[10px] uppercase text-zinc-500 font-semibold flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" /> Uptime
+                        <Clock className="w-3.5 h-3.5 text-amber-400" /> {t('uptime')}
                       </span>
                       <div className="mt-1 font-mono text-zinc-100 font-bold text-sm truncate">
                         {formatUptime(activeState?.uptime)}
                       </div>
-                      <span className="text-[10px] text-zinc-500 block">Thời gian hoạt động</span>
+                      <span className="text-[10px] text-zinc-500 block">{t('uptimeLabel')}</span>
                     </div>
 
                     {/* Hardware Info */}
                     <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-zinc-800/80 space-y-1">
                       <span className="text-[10px] uppercase text-zinc-500 font-semibold flex items-center gap-1.5">
-                        <Server className="w-3.5 h-3.5 text-amber-400" /> Phần cứng
+                        <Server className="w-3.5 h-3.5 text-amber-400" /> {t('hardwareArch')}
                       </span>
                       <div className="mt-1 font-mono text-zinc-100 font-bold text-sm truncate">
                         {activeDevice.hardware || 'ESP8266'}
@@ -915,26 +917,26 @@ export const DeviceDetailPage: React.FC = () => {
                     {/* Network Latency */}
                     <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-zinc-800/80 space-y-1">
                       <span className="text-[10px] uppercase text-zinc-500 font-semibold flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Kết nối
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> {t('connectionStatus')}
                       </span>
                       <div className="mt-1 font-mono text-zinc-100 font-bold text-sm">
                         {activeState?.latency ? `${activeState.latency} ms` : 'LAN Direct'}
                       </div>
-                      <span className="text-[10px] text-emerald-400 block">Reverse Proxy Hoạt Động</span>
+                      <span className="text-[10px] text-emerald-400 block">{t('reverseProxyActive')}</span>
                     </div>
                   </div>
 
                   {/* Wi-Fi Details list */}
                   {activeState?.wifi && (
                     <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 space-y-2 text-xs">
-                      <div className="font-bold text-zinc-300 text-xs">Chi tiết Mạng Không Dây</div>
+                      <div className="font-bold text-zinc-300 text-xs">{t('wifiDetailsTitle')}</div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px] text-zinc-400">
                         <div>
                           <span className="text-zinc-500">SSID:</span> {activeState.wifi.ssid}
                         </div>
                         {activeState.wifi.channel && (
                           <div>
-                            <span className="text-zinc-500">Kênh (Channel):</span>{' '}
+                            <span className="text-zinc-500">{t('wifiChannel')}:</span>{' '}
                             {activeState.wifi.channel}
                           </div>
                         )}
@@ -945,7 +947,7 @@ export const DeviceDetailPage: React.FC = () => {
                         )}
                         {activeState.wifi.linkCount !== undefined && (
                           <div>
-                            <span className="text-zinc-500">Số lần tái kết nối:</span>{' '}
+                            <span className="text-zinc-500">{t('wifiReconnectCount')}:</span>{' '}
                             {activeState.wifi.linkCount}
                           </div>
                         )}
@@ -961,9 +963,9 @@ export const DeviceDetailPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-zinc-300 font-bold flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Sơ đồ chân GPIO (Tasmota Entity Mapping)</span>
+                      <span>{t('gpioMappingTitle')}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-500">Truy vấn `GPIO 255`</span>
+                    <span className="text-[10px] font-mono text-zinc-500">{t('gpioQueryHint')}</span>
                   </div>
 
                   {activeState?.gpioConfig && activeState.gpioConfig.length > 0 ? (
@@ -991,13 +993,13 @@ export const DeviceDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="p-8 bg-zinc-950/60 rounded-xl border border-dashed border-zinc-800 text-center space-y-3">
-                      <p className="text-xs text-zinc-400">Chưa tải được sơ đồ chân GPIO của thiết bị</p>
+                      <p className="text-xs text-zinc-400">{t('gpioNotLoaded')}</p>
                       <button
                         onClick={handleSync}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs hover:bg-zinc-700 font-semibold"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Đồng bộ ngay</span>
+                        <span>{t('syncNowBtn')}</span>
                       </button>
                     </div>
                   )}
@@ -1010,18 +1012,18 @@ export const DeviceDetailPage: React.FC = () => {
                   <div className="space-y-1">
                     <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
                       <Tag className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Tùy chỉnh Tên & Nhãn Tải Thiết Bị</span>
+                      <span>{t('settingsDeviceTitle')}</span>
                     </h4>
                     <p className="text-[11px] text-zinc-500">
-                      Tên thiết bị và nhãn tải sẽ được đồng bộ trực tiếp tới bộ nhớ Flash của Tasmota
+                      {t('settingsDeviceDesc')}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-400 mb-1.5 flex items-center justify-between">
-                        <span>Tên thiết bị hiển thị</span>
-                        <span className="text-[10px] text-zinc-500 font-normal">Lệnh DeviceName</span>
+                        <span>{t('deviceNameLabel')}</span>
+                        <span className="text-[10px] text-zinc-500 font-normal">{t('deviceNameCmdHint')}</span>
                       </label>
                       <input
                         type="text"
@@ -1034,7 +1036,7 @@ export const DeviceDetailPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-zinc-400 mb-1.5 flex items-center justify-between">
-                        <span>Nhãn Relay 1 (Tải chính)</span>
+                        <span>{t('relay1Label')}</span>
                         <span className="text-[10px] text-zinc-500 font-normal">FriendlyName1</span>
                       </label>
                       <input
@@ -1048,7 +1050,7 @@ export const DeviceDetailPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-zinc-400 mb-1.5 flex items-center justify-between">
-                        <span>Nhãn Relay 2 (Chuông / Tải phụ)</span>
+                        <span>{t('relay2Label')}</span>
                         <span className="text-[10px] text-zinc-500 font-normal">FriendlyName2</span>
                       </label>
                       <input
@@ -1072,7 +1074,7 @@ export const DeviceDetailPage: React.FC = () => {
                       ) : (
                         <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                       )}
-                      <span>Lưu Cấu Hình</span>
+                      <span>{t('saveConfigBtn')}</span>
                     </button>
                   </div>
                 </form>
@@ -1081,7 +1083,7 @@ export const DeviceDetailPage: React.FC = () => {
           ) : (
             <div className="p-12 text-center text-zinc-500 text-xs bg-zinc-950/40 border border-dashed border-zinc-800 rounded-2xl space-y-2">
               <Cpu className="w-8 h-8 mx-auto text-zinc-600" />
-              <p>Vui lòng chọn thiết bị ở danh sách bên trái hoặc thêm thiết bị mới</p>
+              <p>{t('selectDevicePromptDetailed')}</p>
             </div>
           )}
         </div>
@@ -1099,12 +1101,13 @@ export const DeviceDetailPage: React.FC = () => {
                 <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
                   <Plus className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-zinc-100">Thêm Thiết Bị Tasmota</h3>
+                <h3 className="font-bold text-sm text-zinc-100">{t('addDeviceModalTitle')}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 className="text-zinc-500 hover:text-zinc-200 p-1"
+                aria-label={t('close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1113,7 +1116,7 @@ export const DeviceDetailPage: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">
-                  Địa chỉ IP thiết bị *
+                  {t('deviceIpLabel')}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -1133,7 +1136,7 @@ export const DeviceDetailPage: React.FC = () => {
                     disabled={!newIp.trim() || testPingState === 'testing'}
                     className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-all disabled:opacity-40"
                   >
-                    {testPingState === 'testing' ? 'Kiểm tra...' : 'Test IP'}
+                    {testPingState === 'testing' ? t('testingIpBtn') : t('testIpBtn')}
                   </button>
                 </div>
 
@@ -1163,7 +1166,7 @@ export const DeviceDetailPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">
-                  Tên hiển thị thân thiện
+                  {t('friendlyNameLabel')}
                 </label>
                 <input
                   type="text"
@@ -1181,14 +1184,14 @@ export const DeviceDetailPage: React.FC = () => {
                 onClick={() => setShowAddModal(false)}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
               >
-                Hủy
+                {t('cancel')}
               </button>
               <button
                 type="submit"
                 disabled={!newIp.trim()}
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-40"
               >
-                Thêm Thiết Bị
+                {t('addDeviceBtn')}
               </button>
             </div>
           </form>
@@ -1204,13 +1207,13 @@ export const DeviceDetailPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <h4 className="font-bold text-sm text-zinc-100">Xác nhận xóa thiết bị?</h4>
+              <h4 className="font-bold text-sm text-zinc-100">{t('confirmDeleteTitle')}?</h4>
               <p className="text-xs text-zinc-400">
-                Bạn có chắc chắn muốn xóa thiết bị{' '}
+                {t('confirmDeleteQuestion')}{' '}
                 <span className="font-bold text-zinc-200">
                   "{devices[confirmDeleteId]?.friendlyName}"
                 </span>{' '}
-                khỏi danh sách quản lý?
+                {t('fromManagerList')}
               </p>
             </div>
 
@@ -1220,14 +1223,14 @@ export const DeviceDetailPage: React.FC = () => {
                 onClick={() => setConfirmDeleteId(null)}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
               >
-                Hủy
+                {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleDelete}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 transition-all active:scale-95"
               >
-                Xóa Vĩnh Viễn
+                {t('deletePermanentlyBtn')}
               </button>
             </div>
           </div>
@@ -1243,10 +1246,9 @@ export const DeviceDetailPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <h4 className="font-bold text-sm text-zinc-100">Khởi động lại thiết bị?</h4>
+              <h4 className="font-bold text-sm text-zinc-100">{t('confirmRestartQuestion')}</h4>
               <p className="text-xs text-zinc-400">
-                Lệnh <code className="text-amber-400 font-mono">Restart 1</code> sẽ khởi động lại vi điều
-                khiển ESP. Kết nối sẽ tạm ngắt khoảng 5–10 giây.
+                {t('confirmRestartWarning')}
               </p>
             </div>
 
@@ -1256,7 +1258,7 @@ export const DeviceDetailPage: React.FC = () => {
                 onClick={() => setConfirmRestartId(null)}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
               >
-                Hủy
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -1265,7 +1267,7 @@ export const DeviceDetailPage: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5"
               >
                 {actionLoading === 'restart' && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>Khởi Động Lại</span>
+                <span>{t('restartDeviceBtn')}</span>
               </button>
             </div>
           </div>
@@ -1282,15 +1284,15 @@ export const DeviceDetailPage: React.FC = () => {
                   <Radio className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-zinc-100">Quét Mạng LAN Tìm Tasmota</h3>
-                  <p className="text-[11px] text-zinc-500">Tự động dò tìm các node Tasmota trong mạng cục bộ</p>
+                  <h3 className="font-bold text-sm text-zinc-100">{t('scanLanModalTitle')}</h3>
+                  <p className="text-[11px] text-zinc-500">{t('scanLanModalDesc')}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowScanModal(false)}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-zinc-200 rounded-xl"
-                aria-label="Đóng cửa sổ quét"
+                aria-label={t('close')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1300,7 +1302,7 @@ export const DeviceDetailPage: React.FC = () => {
             <div className="flex gap-2 items-center">
               <div className="flex-1">
                 <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
-                  Dải mạng quét (Subnet)
+                  {t('scanSubnetLabel')}
                 </label>
                 <input
                   type="text"
@@ -1318,7 +1320,7 @@ export const DeviceDetailPage: React.FC = () => {
                   className="min-h-[40px] px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className={cn('w-3.5 h-3.5', scanLoading && 'animate-spin')} />
-                  <span>{scanLoading ? 'Đang quét...' : 'Quét ngay'}</span>
+                  <span>{scanLoading ? t('scanningBtn') : t('scanNowBtn')}</span>
                 </button>
               </div>
             </div>
@@ -1327,11 +1329,11 @@ export const DeviceDetailPage: React.FC = () => {
             {scanLoading ? (
               <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-300 text-xs">
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-400 flex-none" />
-                <span>Đang quét 254 IP với timeout 300ms... Vui lòng đợi vài giây</span>
+                <span>{t('scanningNotice')}</span>
               </div>
             ) : (
               <div className="text-[11px] text-zinc-400 flex items-center justify-between">
-                <span>Kết quả quét: <strong className="text-zinc-200">{discoveredDevices.length}</strong> thiết bị</span>
+                <span>{t('scanResultCount')} <strong className="text-zinc-200">{discoveredDevices.length}</strong> {t('devicesUnit')}</span>
                 {scanSubnet && <span className="font-mono text-zinc-500">{scanSubnet}.0/24</span>}
               </div>
             )}
@@ -1341,8 +1343,8 @@ export const DeviceDetailPage: React.FC = () => {
               {discoveredDevices.length === 0 && !scanLoading ? (
                 <div className="p-8 text-center text-zinc-500 text-xs border border-dashed border-zinc-800 rounded-xl space-y-1">
                   <Radio className="w-6 h-6 mx-auto text-zinc-600 mb-2" />
-                  <p>Chưa tìm thấy thiết bị nào.</p>
-                  <p className="text-[10px] text-zinc-600">Nhấn "Quét ngay" để bắt đầu dò tìm trên dải IP.</p>
+                  <p>{t('noDevicesDiscovered')}</p>
+                  <p className="text-[10px] text-zinc-600">{t('clickScanPrompt')}</p>
                 </div>
               ) : (
                 discoveredDevices.map((dev) => (
@@ -1366,7 +1368,7 @@ export const DeviceDetailPage: React.FC = () => {
                       {dev.alreadyAdded ? (
                         <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-zinc-800 text-zinc-400">
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          Đã thêm
+                          {t('alreadyAdded')}
                         </span>
                       ) : (
                         <button
@@ -1375,7 +1377,7 @@ export const DeviceDetailPage: React.FC = () => {
                           className="min-h-[44px] px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
                         >
                           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Thêm thiết bị</span>
+                          <span>{t('addDeviceBtn')}</span>
                         </button>
                       )}
                     </div>
@@ -1390,7 +1392,7 @@ export const DeviceDetailPage: React.FC = () => {
                 onClick={() => setShowScanModal(false)}
                 className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:bg-zinc-800 transition-colors"
               >
-                Đóng
+                {t('closeModal')}
               </button>
             </div>
           </div>

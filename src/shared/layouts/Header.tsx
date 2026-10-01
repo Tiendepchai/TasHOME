@@ -2,6 +2,8 @@ import React from 'react';
 import { Cpu, RefreshCw, Shield, LayoutDashboard, Radio } from 'lucide-react';
 import { useDeviceStore } from '@/features/devices/store/device-store';
 import { pollScheduler } from '@/core/http/poll-scheduler';
+import { useTranslation } from '@/core/i18n';
+import { LanguageSelector } from '@/shared/components/LanguageSelector';
 
 interface HeaderProps {
   currentTab: 'dashboard' | 'devices' | 'auth';
@@ -13,9 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
   const devices = useDeviceStore((s) => s.devices);
   const deviceStates = useDeviceStore((s) => s.deviceStates);
   const [refreshing, setRefreshing] = React.useState(false);
-
-  const deviceList = Object.values(devices);
-  const onlineCount = deviceList.filter((d) => deviceStates[d.id]?.online).length;
+  const { t } = useTranslation();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
 
   return (
     <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 px-4 h-14 flex items-center">
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm shadow-amber-500/10">
@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
             }`}
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
+            <span>{t('tabDashboard')}</span>
           </button>
 
           <button
@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            <span>Thiết bị</span>
+            <span>{t('tabDevices')}</span>
           </button>
 
           <button
@@ -73,18 +73,20 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Bảo mật 2FA</span>
+            <span>{t('tabAuth')}</span>
           </button>
         </nav>
 
-        {/* Right Actions */}
+        {/* Right Actions & Language Switcher */}
         <div className="flex items-center gap-2">
+          <LanguageSelector />
+
           <button
             onClick={handleRefresh}
             disabled={refreshing}
             className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-            title="Làm mới trạng thái"
-            aria-label="Làm mới trạng thái toàn hệ thống"
+            title={t('refreshAll')}
+            aria-label={t('refreshAll')}
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-400' : ''}`} />
           </button>
@@ -92,9 +94,9 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogou
           <button
             onClick={onLogout}
             className="min-h-[40px] px-3.5 text-xs font-semibold text-zinc-400 hover:text-rose-400 bg-zinc-900/90 hover:bg-rose-950/20 border border-zinc-800/80 hover:border-rose-900/40 rounded-xl transition-all active:scale-95 cursor-pointer"
-            aria-label="Khóa phiên làm việc"
+            aria-label={t('lockSession')}
           >
-            Khóa
+            {t('lock')}
           </button>
         </div>
       </div>

@@ -19,6 +19,7 @@ import { useDeviceStore } from '@/features/devices/store/device-store';
 import { tasmotaHttp } from '@/core/http/tasmota-http-client';
 import { pollScheduler } from '@/core/http/poll-scheduler';
 import { useToast } from '@/shared/components/Toast';
+import { useTranslation } from '@/core/i18n';
 import { cn } from '@/shared/utils/cn';
 import {
   renderSyntaxHighlightedText,
@@ -40,6 +41,7 @@ interface ConsoleLog {
 type ConsoleViewMode = 'collapsed' | 'normal' | 'maximized';
 
 export const FooterConsole: React.FC = () => {
+  const { t } = useTranslation();
   const { devices, deviceStates, selectedDeviceId, setSelectedDevice } = useDeviceStore();
   const deviceList = Object.values(devices);
   const activeDevice = devices[selectedDeviceId || ''] || deviceList[0];
@@ -253,7 +255,7 @@ export const FooterConsole: React.FC = () => {
   const copyToClipboard = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    addToast('Đã sao chép kết quả console', 'info');
+    addToast(t('copiedConsole'), 'info');
     setTimeout(() => setCopiedId(null), 1500);
   };
 
@@ -312,10 +314,10 @@ export const FooterConsole: React.FC = () => {
               <Terminal className="w-3.5 h-3.5" />
             </div>
             <span className="text-xs font-bold text-zinc-100 tracking-tight flex items-center gap-1.5">
-              <span>TasHOME Console</span>
+              <span>{t('commandConsoleTitle')}</span>
               {viewMode !== 'collapsed' && (
                 <span className="text-[10px] font-mono font-normal text-zinc-500 hidden md:inline">
-                  (nhập 'help' xem lệnh)
+                  {t('helpHint')}
                 </span>
               )}
             </span>
@@ -359,7 +361,7 @@ export const FooterConsole: React.FC = () => {
               )}
             </div>
           ) : (
-            <span className="text-[11px] text-zinc-500 italic">Chưa kết nối thiết bị</span>
+            <span className="text-[11px] text-zinc-500 italic">{t('noDeviceConnected')}</span>
           )}
         </div>
 
@@ -385,7 +387,7 @@ export const FooterConsole: React.FC = () => {
                   type="text"
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
-                  placeholder="Lọc log..."
+                  placeholder={t('filterLogs')}
                   className="bg-zinc-900/90 border border-zinc-800 rounded-lg pl-7 pr-2 py-0.5 text-[11px] text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-500 w-32 lg:w-44 font-mono"
                 />
                 {filterText && (
@@ -408,7 +410,7 @@ export const FooterConsole: React.FC = () => {
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
                 )}
-                title={autoScroll ? 'Cuộn tự động đang bật' : 'Cuộn tự động đang tắt'}
+                title={autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
               >
                 <ArrowDownCircle className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-mono hidden lg:inline">Auto-scroll</span>
@@ -418,7 +420,7 @@ export const FooterConsole: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setLogs([])}
-                title="Xóa toàn bộ log (clear)"
+                title={t('clearLogs')}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -465,7 +467,7 @@ export const FooterConsole: React.FC = () => {
               <div className="text-center py-12 text-zinc-500 text-xs flex flex-col items-center gap-1.5">
                 <span className="font-mono text-zinc-600">TasHOME Console</span>
                 <span className="text-[11px] text-zinc-600">
-                  Gõ lệnh bất kỳ hoặc nhập <code className="text-amber-400 font-mono">help</code> để xem danh sách lệnh.
+                  {t('consoleEmptyPrompt')}
                 </span>
               </div>
             ) : (
@@ -538,8 +540,8 @@ export const FooterConsole: React.FC = () => {
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute bottom-full mb-2 left-0 right-0 sm:right-auto sm:min-w-[360px] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800/80 mb-0.5">
-                  <span>GỢI Ý LỆNH TASMOTA</span>
-                  <span className="text-amber-400 font-semibold">Phím Tab ⇥ để điền</span>
+                  <span>{t('commandSuggestions')}</span>
+                  <span className="text-amber-400 font-semibold">{t('tabToFill')}</span>
                 </div>
                 {suggestions.map((item, idx) => (
                   <button
@@ -591,8 +593,8 @@ export const FooterConsole: React.FC = () => {
                 onKeyDown={handleKeyDown}
                 placeholder={
                   activeDevice
-                    ? `Nhập lệnh Tasmota (gõ 'help' hoặc gõ phím để hiện gợi ý, bấm Tab để chọn)...`
-                    : 'Vui lòng chọn thiết bị'
+                    ? t('enterCmdPlaceholder')
+                    : t('selectDevicePrompt')
                 }
                 disabled={!activeDevice?.ipAddress || loading}
                 className="w-full bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 focus:border-amber-500/80 rounded-xl pl-8 pr-20 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none font-mono transition-colors shadow-inner disabled:opacity-50"

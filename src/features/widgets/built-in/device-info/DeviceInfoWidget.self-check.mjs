@@ -38,7 +38,8 @@ try {
     const html = render(col, row);
     assert.ok(html.includes(`data-layout="${col}x${row}"`));
     assert.ok(html.includes(`data-rows="${row}"`));
-    for (const value of ['Online', '75%', '-52 dBm', '12 ms', '1d 2h 3m', 'Reported chip', 'Reported module', 'Reported firmware', 'Button1']) assert.ok(html.includes(value), `${col}x${row}: ${value}`);
+    assert.ok(html.includes('Online') || html.includes('Trực tuyến'), `${col}x${row}: Online or Trực tuyến`);
+    for (const value of ['75%', '-52 dBm', '12 ms', '1d 2h 3m', 'Reported chip', 'Reported module', 'Reported firmware', 'Button1']) assert.ok(html.includes(value), `${col}x${row}: ${value}`);
     assert.doesNotMatch(visibleText(html), /192\.0\.2\.42|\bIP\b|123456789/);
     assert.doesNotMatch(html, forbidden);
     assert.match(html, /href="http:\/\/192\.0\.2\.42\/" target="_blank" rel="noopener noreferrer"/);
@@ -53,10 +54,10 @@ try {
       assert.doesNotMatch(missing, forbidden);
       assert.doesNotMatch(missing, />0%<|>0 ms</);
     }
-    assert.match(render(col, row, { ...state, online: false }), /Offline · Dữ liệu cũ/);
+    assert.match(render(col, row, { ...state, online: false }), /Offline · Dữ liệu cũ|Ngoại tuyến · Dữ liệu cũ/);
     assert.doesNotMatch(render(col, row, { ...state, online: false }), /Lần cuối|lastSeen|123456789/);
     assert.match(render(col, row, null), /Đang chờ dữ liệu/);
-    assert.doesNotMatch(render(col, row, null), /Offline/);
+    assert.doesNotMatch(render(col, row, null), /Offline|Ngoại tuyến/);
     assert.match(render(col, row, { ...state, online: false, lastSeen: 0 }), /Đang chờ dữ liệu/);
     assert.match(render(col, row, null, null), /Chưa gán thiết bị/);
   }
