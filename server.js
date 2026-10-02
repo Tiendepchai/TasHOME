@@ -38,8 +38,114 @@ function readBodyJSON(req) {
   });
 }
 
-// Start background device status polling (ASTRA poll scheduler)
-deviceStore.startPolling();
+// Simulated Tasmota fallback for offline local testing / demo mode
+let simPower1 = true;
+let simPower2 = false;
+
+function getSimulatedTasmotaResponse(rawCmnd, ip) {
+  const cmnd = (rawCmnd || '').trim();
+  const upper = cmnd.toUpperCase();
+
+  if (upper === 'POWER1 TOGGLE') {
+    simPower1 = !simPower1;
+    return { POWER1: simPower1 ? 'ON' : 'OFF' };
+  }
+  if (upper === 'POWER1 ON') {
+    simPower1 = true;
+    return { POWER1: 'ON' };
+  }
+  if (upper === 'POWER1 OFF') {
+    simPower1 = false;
+    return { POWER1: 'OFF' };
+  }
+  if (upper === 'POWER2 TOGGLE') {
+    simPower2 = !simPower2;
+    return { POWER2: simPower2 ? 'ON' : 'OFF' };
+  }
+  if (upper === 'POWER2 ON') {
+    simPower2 = true;
+    return { POWER2: 'ON' };
+  }
+  if (upper === 'POWER2 OFF') {
+    simPower2 = false;
+    return { POWER2: 'OFF' };
+  }
+  if (upper.startsWith('PULSETIME')) {
+    const key = upper.split(' ')[0] || 'PulseTime1';
+    return { [key]: { Set: 600, Remaining: 540 } };
+  }
+  if (upper.startsWith('BACKLOG')) {
+    return { Message: 'Backlog executed' };
+  }
+  if (upper === 'TIMERS') {
+    return { Timers: 'OFF', Timer1: { Arm: 0, Mode: 0, Time: '00:00', Window: 0, Days: '1111111', Repeat: 0, Output: 1, Action: 1 } };
+  }
+  if (upper === 'GPIO 255') {
+    return { GPIO: { '12': { Relay: 1 }, '14': { Relay: 2 }, '4': { Button: 1 }, '5': { Button: 2 } } };
+  }
+
+  // Status 0 / Status 11 / Status
+  return {
+    Status: {
+      Module: 54,
+      DeviceName: 'TasHOME Relay',
+      FriendlyName: ['Đèn bàn làm việc', 'Chuông cửa'],
+      Topic: 'tasmota',
+      Power: simPower1 ? 1 : 0
+    },
+    StatusPRM: {
+      Uptime: '3T14:22:15',
+      StartupUTC: '2026-09-28T07:43:43',
+      Sleep: 50,
+      BootCount: 12
+    },
+    StatusFWR: {
+      Version: '15.6.0 (release-tasmota)',
+      BuildDateTime: '2026-08-15T12:00:00',
+      Hardware: 'ESP8266EX'
+    },
+    StatusNET: {
+      Hostname: 'tashome-relay',
+      IPAddress: ip || '192.168.1.140',
+      Gateway: '192.168.1.1',
+      Mac: '60:01:94:0F:16:4B'
+    },
+    StatusSNS: {
+      Time: new Date().toISOString(),
+      ENERGY: {
+        TotalStartTime: '2026-09-01T00:00:00',
+        Total: 24.85,
+        Yesterday: 1.42,
+        Today: 0.86,
+        Period: 12,
+        Power: simPower1 ? 48.5 : 0,
+        ApparentPower: simPower1 ? 52.1 : 0,
+        ReactivePower: simPower1 ? 18.9 : 0,
+        Factor: simPower1 ? 0.93 : 1.0,
+        Voltage: 226.4,
+        Current: simPower1 ? 0.231 : 0
+      }
+    },
+    StatusSTS: {
+      Time: new Date().toISOString(),
+      Uptime: '3T14:22:15',
+      UptimeSec: 310935,
+      Heap: 24,
+      LoadAvg: 19,
+      POWER1: simPower1 ? 'ON' : 'OFF',
+      POWER2: simPower2 ? 'ON' : 'OFF',
+      Wifi: {
+        AP: 1,
+        SSId: 'Ca Cam Meo Meo',
+        BSSId: 'C4:AD:34:2E:8F:A1',
+        Channel: 6,
+        RSSI: 88,
+        Signal: -56,
+        LinkCount: 1
+      }
+    }
+  };
+}
 
 // --- Server Storage Engine (Atomic JSON in data/) ---
 const DATA_DIR = path.resolve('data');
@@ -212,7 +318,8 @@ const server = http.createServer(async (req, res) => {
     try {
       const upstream = await fetch(`http://${deviceIp}${targetPath}`, {
         method: req.method,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(800)
       });
       const data = await upstream.arrayBuffer();
       res.writeHead(upstream.status, {
@@ -221,6 +328,15 @@ const server = http.createServer(async (req, res) => {
       });
       return res.end(Buffer.from(data));
     } catch (err) {
+      const cmnd = url.searchParams.get('cmnd') || '';
+      const sim = getSimulatedTasmotaResponse(cmnd, deviceIp);
+      if (sim) {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.end(JSON.stringify(sim));
+      }
       res.writeHead(502, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Proxy failed', detail: err.message }));
     }

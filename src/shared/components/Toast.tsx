@@ -6,12 +6,12 @@ import { cn } from '@/shared/utils/cn';
 export interface ToastItem {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
 }
 
 interface ToastStore {
   toasts: ToastItem[];
-  addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  addToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   removeToast: (id: string) => void;
 }
 
@@ -46,12 +46,14 @@ export const ToastContainer: React.FC = () => {
             'pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-3',
             toast.type === 'success' && 'bg-zinc-900/95 border-emerald-500/30 text-zinc-100 shadow-emerald-500/5',
             toast.type === 'error' && 'bg-zinc-900/95 border-rose-500/30 text-zinc-100 shadow-rose-500/5',
+            toast.type === 'warning' && 'bg-zinc-900/95 border-amber-500/40 text-amber-200 shadow-amber-500/10',
             toast.type === 'info' && 'bg-zinc-900/95 border-zinc-700/80 text-zinc-100'
           )}
         >
           <div className="flex items-center gap-2.5">
             {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
             {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            {toast.type === 'warning' && <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />}
             {toast.type === 'info' && <Info className="w-4 h-4 text-amber-400 shrink-0" />}
             <span className="text-xs font-medium tracking-tight leading-snug">{toast.message}</span>
           </div>

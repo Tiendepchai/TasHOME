@@ -115,7 +115,7 @@ class HttpPollScheduler {
       if (!this.gpioFetched.has(deviceId)) {
         this.gpioFetched.add(deviceId);
         tasmotaHttp.sendCommand(dev.ipAddress, 'GPIO 255')
-          .then((gpioRes) => {
+          .then((gpioRes: any) => {
             if (gpioRes.ok) {
               const gpioConfig = mapGpioToEntities(gpioRes.data);
               if (gpioConfig.length > 0) {
