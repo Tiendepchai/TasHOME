@@ -175,7 +175,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
         aria-label={`${t('language')}: ${currentOption.label} (${currentOption.flag})`}
-        className={`group min-h-[40px] px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center gap-2 select-none outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 ${
+        className={`group min-h-11 min-w-11 px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center gap-2 select-none outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 ${
           isOpen
             ? 'bg-zinc-800/90 border-amber-500/40 text-zinc-100 shadow-sm shadow-amber-500/10'
             : 'bg-zinc-900/90 hover:bg-zinc-800/80 border-zinc-800/80 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100'
@@ -212,7 +212,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           aria-activedescendant={
             focusedIndex >= 0 ? `lang-option-${SUPPORTED_LANGUAGES[focusedIndex]?.code}` : undefined
           }
-          className="absolute right-0 top-full mt-2 w-52 p-1.5 bg-zinc-900/95 backdrop-blur-md border border-zinc-800/90 rounded-xl shadow-2xl shadow-black/80 z-50 flex flex-col gap-1 focus:outline-none"
+          className="fixed left-4 right-4 top-auto mt-2 w-auto max-h-[min(20rem,60dvh)] overflow-y-auto overscroll-contain sm:absolute sm:left-auto sm:right-0 sm:top-full sm:w-52 p-1.5 bg-zinc-900/95 backdrop-blur-md border border-zinc-800/90 rounded-xl shadow-2xl shadow-black/80 z-50 flex flex-col gap-1 focus:outline-none"
         >
           {SUPPORTED_LANGUAGES.map((lang, index) => {
             const isSelected = language === lang.code;
@@ -228,7 +228,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                   aria-selected={isSelected}
                   tabIndex={focusedIndex === index ? 0 : -1}
                   onClick={() => handleSelect(lang.code)}
-                  className={`w-full min-h-[40px] px-2.5 py-1.5 rounded-lg text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none select-none ${
+                  className={`w-full min-h-11 px-2.5 py-1.5 rounded-lg text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none select-none ${
                     isSelected
                       ? 'bg-amber-500/10 text-amber-400 font-medium'
                       : 'text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 focus:bg-zinc-800/70 focus:text-zinc-100'

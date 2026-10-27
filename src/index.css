@@ -12,6 +12,15 @@
   --color-state-off: #71717a;
 }
 
+:root {
+  --mobile-nav-height: 72px;
+  --console-bar-height: 44px;
+}
+
+html {
+  scroll-padding-top: 72px;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -24,6 +33,98 @@ body {
 
 code, kbd, samp, pre, .font-mono {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+.app-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.app-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  background: #18181b;
+}
+
+.console-shell {
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  max-height: calc(100dvh - 72px - env(safe-area-inset-top, 0px));
+}
+
+.console-shell[data-mode='collapsed'] {
+  height: calc(var(--console-bar-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.app-main {
+  min-width: 0;
+  padding-bottom: calc(var(--console-bar-height) + 24px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 767px) {
+  .app-navigation {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    border-radius: 0;
+    border-width: 1px 0 0;
+    background: #09090b;
+  }
+
+  .app-main {
+    padding-bottom: calc(var(--mobile-nav-height) + var(--console-bar-height) + 24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .console-shell {
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
+    max-height: calc(100dvh - var(--mobile-nav-height) - 72px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+  }
+
+  .console-shell[data-mode='collapsed'] {
+    height: var(--console-bar-height);
+  }
+
+  .console-shell[data-mode='collapsed'] .console-device-picker {
+    display: none;
+  }
+
+  .console-shell:not([data-mode='collapsed']) .console-identity {
+    display: contents;
+  }
+
+  .console-shell:not([data-mode='collapsed']) .console-device-picker {
+    order: 1;
+    flex-basis: 100%;
+    padding: 4px 0 8px;
+  }
+
+  input:not([type='checkbox']):not([type='radio']), select, textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Scrollbar styles */

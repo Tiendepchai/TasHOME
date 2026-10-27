@@ -91,7 +91,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-amber-500/20">
       <Header currentTab={tab} onSelectTab={setTab} onLogout={handleLogout} />
-      <main className="flex-1 pb-16">
+      <main className="app-main flex-1">
         {tab === 'dashboard' && <DashboardPage />}
         {tab === 'devices' && <DeviceDetailPage />}
         {tab === 'auth' && <AuthSettingsPage />}
