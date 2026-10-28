@@ -8,6 +8,7 @@ export interface Config {
   HTTP_TIMEOUT: number;
   POLL_INTERVAL_MS: number;
   SECRET_FILE: string;
+  STATE_DIR: string;
 }
 
 export interface TasmotaDefaults {

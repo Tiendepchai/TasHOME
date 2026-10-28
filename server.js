@@ -38,117 +38,12 @@ function readBodyJSON(req) {
   });
 }
 
-// Simulated Tasmota fallback for offline local testing / demo mode
-let simPower1 = true;
-let simPower2 = false;
-
-function getSimulatedTasmotaResponse(rawCmnd, ip) {
-  const cmnd = (rawCmnd || '').trim();
-  const upper = cmnd.toUpperCase();
-
-  if (upper === 'POWER1 TOGGLE') {
-    simPower1 = !simPower1;
-    return { POWER1: simPower1 ? 'ON' : 'OFF' };
-  }
-  if (upper === 'POWER1 ON') {
-    simPower1 = true;
-    return { POWER1: 'ON' };
-  }
-  if (upper === 'POWER1 OFF') {
-    simPower1 = false;
-    return { POWER1: 'OFF' };
-  }
-  if (upper === 'POWER2 TOGGLE') {
-    simPower2 = !simPower2;
-    return { POWER2: simPower2 ? 'ON' : 'OFF' };
-  }
-  if (upper === 'POWER2 ON') {
-    simPower2 = true;
-    return { POWER2: 'ON' };
-  }
-  if (upper === 'POWER2 OFF') {
-    simPower2 = false;
-    return { POWER2: 'OFF' };
-  }
-  if (upper.startsWith('PULSETIME')) {
-    const key = upper.split(' ')[0] || 'PulseTime1';
-    return { [key]: { Set: 600, Remaining: 540 } };
-  }
-  if (upper.startsWith('BACKLOG')) {
-    return { Message: 'Backlog executed' };
-  }
-  if (upper === 'TIMERS') {
-    return { Timers: 'OFF', Timer1: { Arm: 0, Mode: 0, Time: '00:00', Window: 0, Days: '1111111', Repeat: 0, Output: 1, Action: 1 } };
-  }
-  if (upper === 'GPIO 255') {
-    return { GPIO: { '12': { Relay: 1 }, '14': { Relay: 2 }, '4': { Button: 1 }, '5': { Button: 2 } } };
-  }
-
-  // Status 0 / Status 11 / Status
-  return {
-    Status: {
-      Module: 54,
-      DeviceName: 'TasHOME Relay',
-      FriendlyName: ['Đèn bàn làm việc', 'Chuông cửa'],
-      Topic: 'tasmota',
-      Power: simPower1 ? 1 : 0
-    },
-    StatusPRM: {
-      Uptime: '3T14:22:15',
-      StartupUTC: '2026-09-28T07:43:43',
-      Sleep: 50,
-      BootCount: 12
-    },
-    StatusFWR: {
-      Version: '15.6.0 (release-tasmota)',
-      BuildDateTime: '2026-08-15T12:00:00',
-      Hardware: 'ESP8266EX'
-    },
-    StatusNET: {
-      Hostname: 'tashome-relay',
-      IPAddress: ip || '192.168.1.140',
-      Gateway: '192.168.1.1',
-      Mac: '60:01:94:0F:16:4B'
-    },
-    StatusSNS: {
-      Time: new Date().toISOString(),
-      ENERGY: {
-        TotalStartTime: '2026-09-01T00:00:00',
-        Total: 24.85,
-        Yesterday: 1.42,
-        Today: 0.86,
-        Period: 12,
-        Power: simPower1 ? 48.5 : 0,
-        ApparentPower: simPower1 ? 52.1 : 0,
-        ReactivePower: simPower1 ? 18.9 : 0,
-        Factor: simPower1 ? 0.93 : 1.0,
-        Voltage: 226.4,
-        Current: simPower1 ? 0.231 : 0
-      }
-    },
-    StatusSTS: {
-      Time: new Date().toISOString(),
-      Uptime: '3T14:22:15',
-      UptimeSec: 310935,
-      Heap: 24,
-      LoadAvg: 19,
-      POWER1: simPower1 ? 'ON' : 'OFF',
-      POWER2: simPower2 ? 'ON' : 'OFF',
-      Wifi: {
-        AP: 1,
-        SSId: 'Ca Cam Meo Meo',
-        BSSId: 'C4:AD:34:2E:8F:A1',
-        Channel: 6,
-        RSSI: 88,
-        Signal: -56,
-        LinkCount: 1
-      }
-    }
-  };
-}
+const standalone = typeof Bun !== 'undefined' && Bun.isStandaloneExecutable;
+const version = typeof BUILD_VERSION !== 'undefined' ? BUILD_VERSION : 'development';
+const distDir = standalone ? path.join(import.meta.dir, 'dist') : path.resolve('dist');
 
 // --- Server Storage Engine (Atomic JSON in data/) ---
-const DATA_DIR = path.resolve('data');
+const DATA_DIR = path.resolve(CONFIG.STATE_DIR, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 }
@@ -199,11 +94,11 @@ function loadJson(filePath, defaultValue) {
 }
 
 // Migrate legacy root files if present
-if (!fs.existsSync(DEVICES_FILE) && fs.existsSync(path.resolve('.devices.json'))) {
-  try { fs.copyFileSync(path.resolve('.devices.json'), DEVICES_FILE); } catch {}
+if (!fs.existsSync(DEVICES_FILE) && fs.existsSync(path.resolve(CONFIG.STATE_DIR, '.devices.json'))) {
+  try { fs.copyFileSync(path.resolve(CONFIG.STATE_DIR, '.devices.json'), DEVICES_FILE); } catch {}
 }
-if (!fs.existsSync(DASHBOARDS_FILE) && fs.existsSync(path.resolve('.dashboards.json'))) {
-  try { fs.copyFileSync(path.resolve('.dashboards.json'), DASHBOARDS_FILE); } catch {}
+if (!fs.existsSync(DASHBOARDS_FILE) && fs.existsSync(path.resolve(CONFIG.STATE_DIR, '.dashboards.json'))) {
+  try { fs.copyFileSync(path.resolve(CONFIG.STATE_DIR, '.dashboards.json'), DASHBOARDS_FILE); } catch {}
 }
 
 // Seed default scenes if data/scenes.json does not exist
@@ -247,7 +142,12 @@ function detectLocalSubnet(explicitSubnet) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url, 'http://localhost');
+
+  if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ status: 'ok', version }));
+  }
 
   // 1. 2FA TOTP Login (RFC 6238, 24-hour session cookie)
   if (req.method === 'POST' && url.pathname === '/api/auth/login') {
@@ -286,9 +186,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   // 3. Static assets & SPA routing from dist/
-  const distDir = path.resolve('dist');
-  const cleanPath = url.pathname.replace(/^\/+/, '');
-  const candidateFile = path.join(distDir, cleanPath || 'index.html');
+  let cleanPath;
+  try {
+    cleanPath = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+  } catch {
+    res.writeHead(400);
+    return res.end('Invalid path');
+  }
+  const candidateFile = path.resolve(distDir, cleanPath || 'index.html');
+  const relativeFile = path.relative(distDir, candidateFile);
+  if (relativeFile.startsWith('..') || path.isAbsolute(relativeFile) || cleanPath.includes('\0')) {
+    res.writeHead(400);
+    return res.end('Invalid path');
+  }
 
   if ((req.method === 'GET' || req.method === 'HEAD') && fs.existsSync(candidateFile) && fs.statSync(candidateFile).isFile()) {
     const ext = path.extname(candidateFile).toLowerCase();
@@ -319,7 +229,7 @@ const server = http.createServer(async (req, res) => {
       const upstream = await fetch(`http://${deviceIp}${targetPath}`, {
         method: req.method,
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(800)
+        signal: AbortSignal.timeout(CONFIG.HTTP_TIMEOUT)
       });
       const data = await upstream.arrayBuffer();
       res.writeHead(upstream.status, {
@@ -328,15 +238,6 @@ const server = http.createServer(async (req, res) => {
       });
       return res.end(Buffer.from(data));
     } catch (err) {
-      const cmnd = url.searchParams.get('cmnd') || '';
-      const sim = getSimulatedTasmotaResponse(cmnd, deviceIp);
-      if (sim) {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        });
-        return res.end(JSON.stringify(sim));
-      }
       res.writeHead(502, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Proxy failed', detail: err.message }));
     }
@@ -803,16 +704,26 @@ export const SESSION_TTL_MS = CONFIG.SESSION_TTL_MS;
 export const SESSION_MAX_AGE_SEC = CONFIG.SESSION_MAX_AGE_SEC;
 export const TOTP_SECRET = getTotpSecret();
 
-const isMain = process.argv[1] && (
+const isMain = standalone || (process.argv[1] && (
   process.argv[1] === new URL(import.meta.url).pathname ||
   import.meta.url.endsWith(process.argv[1])
-);
+));
 
 if (isMain) {
   server.listen(CONFIG.PORT, '0.0.0.0', () => {
     console.log(`[ASTRA] Smart Home server running at http://0.0.0.0:${CONFIG.PORT}`);
     console.log(`[ASTRA] Relay Target: http://${CONFIG.RELAY_HOST}:${CONFIG.RELAY_PORT}/`);
-    console.log(`[2FA] Secret Key: ${getTotpSecret()}`);
-    console.log(`[2FA] OTPAuth: ${getOtpAuthUrl(getTotpSecret())}`);
+    console.log(`[TasHOME] Build: ${version}`);
   });
+  const shutdown = () => {
+    deviceStore.stopPolling();
+    const deadline = setTimeout(() => process.exit(1), 10000);
+    deadline.unref();
+    server.close(() => {
+      clearTimeout(deadline);
+      process.exit(0);
+    });
+  };
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
 }

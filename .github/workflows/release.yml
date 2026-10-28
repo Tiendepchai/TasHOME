@@ -1,0 +1,72 @@
+name: Release binary
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'binary-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/binary-')
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: verify
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tashome-linux-arm64-${{ github.sha }}
+          path: release
+      - name: Verify tested artifact
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          cd release
+          sha256sum --strict -c SHA256SUMS
+          python3 -I - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          m = json.loads(Path('manifest.json').read_text())
+          assert re.fullmatch(r'[a-f0-9]{40}', os.environ['EXPECTED_SHA'])
+          assert m['version'] == os.environ['EXPECTED_SHA']
+          assert m['target'] == 'bun-linux-arm64'
+          assert m['binary'] == 'tashome-linux-arm64'
+          assert {p.name for p in Path('.').iterdir()} == {'tashome-linux-arm64', 'manifest.json', 'SHA256SUMS'}
+          PY
+      - name: Publish verified stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          tag="binary-$COMMIT"
+          if [[ "$SOURCE_REF" == refs/tags/* && "$SOURCE_REF" != "refs/tags/$tag" ]]; then
+            printf 'Release tag must match its commit\n' >&2
+            exit 1
+          fi
+          if gh release view "$tag" --json isDraft --jq .isDraft > existing-release 2>/dev/null; then
+            if [[ "$(<existing-release)" != true ]]; then
+              printf 'Stable release already exists; refusing replacement\n' >&2
+              exit 1
+            fi
+            gh release upload "$tag" release/tashome-linux-arm64 release/manifest.json release/SHA256SUMS --clobber
+          else
+            gh release create "$tag" release/tashome-linux-arm64 release/manifest.json release/SHA256SUMS \
+              --draft --target "$COMMIT" --title "TasHOME $COMMIT" \
+              --notes "Verified standalone Linux ARM64 build of $COMMIT. No runtime state or credentials included."
+          fi
+          gh release edit "$tag" --draft=false --latest

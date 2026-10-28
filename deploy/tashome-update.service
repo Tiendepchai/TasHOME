@@ -1,0 +1,11 @@
+[Unit]
+Description=Install latest stable TasHOME binary release
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/lib/tashome/update.sh
+TimeoutStartSec=10min
+UMask=0022

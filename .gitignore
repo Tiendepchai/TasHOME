@@ -3,6 +3,9 @@ node_modules/
 
 # Production build outputs
 dist/
+artifacts/
+.env*
+!.env.example
 
 # Persistent server data & secrets (DO NOT COMMIT)
 data/
