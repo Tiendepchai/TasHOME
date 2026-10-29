@@ -35,16 +35,19 @@ export function base32Encode(buf) {
   return output;
 }
 
-export function loadOrGenTotpSecret() {
-  if (process.env.TOTP_SECRET) {
-    return process.env.TOTP_SECRET.toUpperCase().replace(/[\s=]/g, '');
-  }
+export function loadOrGenTotpSecret(allowCreate = process.env.NODE_ENV !== 'production') {
+  const validate = (value) => {
+    const secret = value.toUpperCase().replace(/[\s=]/g, '');
+    if (!/^[A-Z2-7]{16,}$/.test(secret)) throw new Error('Invalid TOTP secret');
+    return secret;
+  };
+  if (process.env.TOTP_SECRET) return validate(process.env.TOTP_SECRET);
   try {
-    if (fs.existsSync(CONFIG.SECRET_FILE)) {
-      const saved = fs.readFileSync(CONFIG.SECRET_FILE, 'utf8').trim();
-      if (saved.length >= 16) return saved.toUpperCase().replace(/[\s=]/g, '');
-    }
-  } catch {}
+    if (fs.existsSync(CONFIG.SECRET_FILE)) return validate(fs.readFileSync(CONFIG.SECRET_FILE, 'utf8').trim());
+  } catch (err) {
+    if (!allowCreate) throw new Error(`Cannot load provisioned TOTP secret: ${err.message}`);
+  }
+  if (!allowCreate) throw new Error('Production requires an existing TOTP secret; refusing to regenerate');
   const raw = crypto.randomBytes(20);
   const secret = base32Encode(raw);
   try {
@@ -73,7 +76,7 @@ export function revokeTotpSecret() {
   try {
     if (fs.existsSync(CONFIG.SECRET_FILE)) fs.unlinkSync(CONFIG.SECRET_FILE);
   } catch {}
-  activeSecret = loadOrGenTotpSecret();
+  activeSecret = loadOrGenTotpSecret(true);
   const formatted = getFormattedSecret(activeSecret);
   const otpauth = getOtpAuthUrl(activeSecret);
   return { secret: activeSecret, formatted, otpauth };

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslation } from '@/core/i18n';
+import { sessionFetch } from '@/core/http/session-fetch';
 
 export interface SceneAction {
   type: 'broadcast' | 'device';
@@ -60,6 +61,11 @@ export const QuickActionBar: React.FC = () => {
 
   // Scene management modal state
   const [showSceneModal, setShowSceneModal] = useState(false);
+  const sceneDialogRef = React.useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (showSceneModal) sceneDialogRef.current?.showModal();
+  }, [showSceneModal]);
   const [newSceneName, setNewSceneName] = useState('');
   const [newSceneDesc, setNewSceneDesc] = useState('');
   const [newSceneIcon, setNewSceneIcon] = useState('Sparkles');
@@ -71,7 +77,7 @@ export const QuickActionBar: React.FC = () => {
 
   const fetchScenes = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/scenes', { signal });
+      const res = await sessionFetch('/api/scenes', { signal });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -92,7 +98,7 @@ export const QuickActionBar: React.FC = () => {
     setExecutingSceneId(scene.id);
 
     try {
-      const res = await fetch(`/api/scenes/${encodeURIComponent(scene.id)}/execute`, {
+      const res = await sessionFetch(`/api/scenes/${encodeURIComponent(scene.id)}/execute`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -125,7 +131,7 @@ export const QuickActionBar: React.FC = () => {
     setSavingScene(true);
 
     try {
-      const res = await fetch('/api/scenes', {
+      const res = await sessionFetch('/api/scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +160,7 @@ export const QuickActionBar: React.FC = () => {
 
   const handleDeleteScene = async (id: string, name: string) => {
     try {
-      const res = await fetch(`/api/scenes/${encodeURIComponent(id)}`, {
+      const res = await sessionFetch(`/api/scenes/${encodeURIComponent(id)}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -174,7 +180,7 @@ export const QuickActionBar: React.FC = () => {
     <>
       <div className="bg-gradient-to-r from-zinc-900/95 via-zinc-900/80 to-zinc-900/95 border border-zinc-800/80 rounded-2xl p-4 shadow-lg backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
         {/* Overview Status Chips */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-zinc-400">{t('onlineCountLabel')}</span>
@@ -269,21 +275,26 @@ export const QuickActionBar: React.FC = () => {
 
       {/* MODAL: Quản lý Ngữ Cảnh & Presets */}
       {showSceneModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+        <dialog
+          ref={sceneDialogRef}
+          aria-labelledby="scene-dialog-title"
+          onClose={() => setShowSceneModal(false)}
+          className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-md max-sm:[&_input]:min-h-11 max-sm:[&_select]:min-h-11"
+        >
+          <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-zinc-100">{t('scenesModalTitle')}</h3>
+                  <h3 id="scene-dialog-title" className="font-bold text-sm text-zinc-100">{t('scenesModalTitle')}</h3>
                   <p className="text-[11px] text-zinc-500">{t('scenesModalDesc')}</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setShowSceneModal(false)}
+                onClick={() => sceneDialogRef.current?.close()}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-zinc-200 rounded-xl"
                 aria-label={t('close')}
               >
@@ -406,7 +417,7 @@ export const QuickActionBar: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
     </>
   );

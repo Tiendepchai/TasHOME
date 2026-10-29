@@ -1,12 +1,13 @@
 let failedAttempts = 0;
 let lockoutUntil = 0;
 
+export function getRetryAfter() {
+  return Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+}
+
 export function checkRateLimit() {
-  if (Date.now() < lockoutUntil) {
-    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
-    return `Thử sai quá 5 lần. Vui lòng chờ ${remaining}s`;
-  }
-  return null;
+  const remaining = getRetryAfter();
+  return remaining > 0 ? `Thử sai quá 5 lần. Vui lòng chờ ${remaining}s` : null;
 }
 
 export function recordLoginAttempt(success) {

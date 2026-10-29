@@ -8,6 +8,9 @@
     "start": "node server.js",
     "dev": "vite",
     "build": "vite build",
+    "build:binary": "bun scripts/build-binary.mjs",
+    "check": "tsc --noEmit && node src/features/widgets/built-in/relay-toggle/RelayToggleWidget.self-check.mjs && node src/shared/layouts/mobile-ui.self-check.mjs && node src/core/auth/login.self-check.mjs",
+    "check:binary": "node scripts/binary.self-check.mjs",
     "preview": "vite preview",
     "test": "node test.js"
   },

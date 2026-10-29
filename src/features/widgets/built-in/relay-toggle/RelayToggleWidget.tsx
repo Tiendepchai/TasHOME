@@ -61,16 +61,41 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
   } | null>(null);
   const [customMins, setCustomMins] = useState(5);
   const [customSecs, setCustomSecs] = useState(0);
+  const timerDialogRef = React.useRef<HTMLDialogElement>(null);
+  const timerTitleId = React.useId();
+
+  useEffect(() => {
+    if (customModalChannel) {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      timerDialogRef.current?.showModal();
+    }
+  }, [customModalChannel]);
 
   // Mitosis cell division state for 2s hover on hero toggle
   const [isDivided, setIsDivided] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [touchLayout, setTouchLayout] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (hover: none), (pointer: coarse)').matches
+  );
+  const stageRef = React.useRef<HTMLDivElement>(null);
+  const showTimer = touchLayout || isDivided;
+
+  useEffect(() => {
+    // ponytail: touch uses two explicit targets; fine-pointer desktop keeps the 2s reveal.
+    const media = window.matchMedia('(max-width: 767px), (hover: none), (pointer: coarse)');
+    const update = () => setTouchLayout(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
   const isDividedRef = React.useRef(false);
   isDividedRef.current = isDivided;
   const hoverTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleStageMouseEnter = () => {
+    if (touchLayout) return;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
@@ -93,7 +118,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
       hoverTimeoutRef.current = null;
     }
     setIsPreparing(false);
-    if (isDividedRef.current) {
+    if (isDividedRef.current && !customModalChannel) {
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
       }
@@ -104,43 +129,22 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     }
   };
 
-  const handleStageTouchStart = () => {
-    handleStageMouseEnter();
-  };
-
-  const handleStageTouchEnd = () => {
-    if (!isDividedRef.current) {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
-      }
-      setIsPreparing(false);
-    }
-  };
-
-  const handleStageTouchCancel = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setIsPreparing(false);
-  };
-
   useEffect(() => {
-    if (!isDivided) return;
+    if (!isDivided || customModalChannel) return;
     const onOutside = (e: Event) => {
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest('.rw-mitosis-stage')) {
+      if (e.target instanceof Node && !stageRef.current?.contains(e.target)) {
         setIsDivided(false);
       }
     };
-    const autoCloseTimer = setTimeout(() => setIsDivided(false), 8000);
+    const autoCloseTimer = setTimeout(() => {
+      if (!stageRef.current?.contains(document.activeElement)) setIsDivided(false);
+    }, 8000);
     document.addEventListener('pointerdown', onOutside);
     return () => {
       clearTimeout(autoCloseTimer);
       document.removeEventListener('pointerdown', onOutside);
     };
-  }, [isDivided]);
+  }, [isDivided, customModalChannel]);
 
   useEffect(() => {
     return () => {
@@ -149,30 +153,12 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     };
   }, []);
 
-  if (!device) {
-    return (
-      <article
-        className="relay-widget"
-        data-rows={rowSpan}
-        data-layout={`${colSpan}x${rowSpan}`}
-        data-channels="0"
-        data-status="waiting"
-        aria-label={t('relayControl')}
-      >
-        <div className="rw-empty">
-          <Power aria-hidden="true" />
-          <p>{t('unassignedRelay')}</p>
-        </div>
-      </article>
-    );
-  }
-
   // Detect power channels (POWER1, POWER2, ...)
   const channelSet = new Set<string>();
   Object.keys(state?.power || {}).forEach((k) => {
     if (/^POWER\d*$/i.test(k)) channelSet.add(k.toUpperCase());
   });
-  if (device.relayLabels) {
+  if (device?.relayLabels) {
     Object.keys(device.relayLabels).forEach((k) => {
       if (/^POWER\d*$/i.test(k)) channelSet.add(k.toUpperCase());
     });
@@ -226,6 +212,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
 
   // Tick countdown every second and trigger actions on completion
   useEffect(() => {
+    if (!device) return;
     const timer = setInterval(() => {
       const now = Date.now();
       setChannelTimers((prev) => {
@@ -246,6 +233,24 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
     }, 1000);
     return () => clearInterval(timer);
   }, [device?.id, onCommand]);
+
+  if (!device) {
+    return (
+      <article
+        className="relay-widget"
+        data-rows={rowSpan}
+        data-layout={`${colSpan}x${rowSpan}`}
+        data-channels="0"
+        data-status="waiting"
+        aria-label={t('relayControl')}
+      >
+        <div className="rw-empty">
+          <Power aria-hidden="true" />
+          <p>{t('unassignedRelay')}</p>
+        </div>
+      </article>
+    );
+  }
 
   const getChannelRemaining = (key: string) => {
     const tm = channelTimers[key];
@@ -352,7 +357,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
       totalSecs,
       customModalChannel.mode
     );
-    setCustomModalChannel(null);
+    timerDialogRef.current?.close();
   };
 
   return (
@@ -411,16 +416,21 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               const isArmed = remainingSecs > 0 || (isActive && (pulse?.set ?? 0) > 0);
 
               return (
-                <div className="rw-hero-box">
+                <div className="rw-hero-box" data-touch={touchLayout ? 'true' : 'false'}>
                   <div
+                    ref={stageRef}
                     className="rw-mitosis-stage"
-                    data-divided={isDivided ? 'true' : 'false'}
-                    data-preparing={isPreparing ? 'true' : 'false'}
+                    data-divided={showTimer ? 'true' : 'false'}
+                    data-preparing={!touchLayout && isPreparing ? 'true' : 'false'}
+                    data-touch={touchLayout ? 'true' : 'false'}
                     onMouseEnter={handleStageMouseEnter}
                     onMouseLeave={handleStageMouseLeave}
-                    onTouchStart={handleStageTouchStart}
-                    onTouchEnd={handleStageTouchEnd}
-                    onTouchCancel={handleStageTouchCancel}
+                    onFocusCapture={(e) => {
+                      if (e.target.matches(':focus-visible')) setIsDivided(true);
+                    }}
+                    onBlurCapture={(e) => {
+                      if (!timerDialogRef.current?.open && !e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDivided(false);
+                    }}
                   >
                     {/* Mother cell: Power toggle button */}
                     <button
@@ -451,9 +461,9 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                       className="rw-toggle-btn rw-hero-toggle rw-hero-timer-cell rw-daughter-cell"
                       data-active={isArmed ? 'true' : 'false'}
                       title={isActive ? t('timerTurnOffTitle') : t('timerTurnOnTitle')}
-                      aria-label={isActive ? t('timerTurnOffTitle') : t('timerTurnOnTitle')}
-                      aria-hidden={!isDivided}
-                      tabIndex={isDivided ? 0 : -1}
+                      aria-label={`${isActive ? t('timerTurnOffTitle') : t('timerTurnOnTitle')}${remainingSecs > 0 ? `: ${formatCountdown(remainingSecs)}` : ''}`}
+                      aria-hidden={!showTimer}
+                      tabIndex={showTimer ? 0 : -1}
                     >
                       <Clock aria-hidden="true" />
                       <span className="rw-btn-label">
@@ -466,7 +476,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     </button>
                   </div>
 
-                  {!isDivided && remainingSecs > 0 && (
+                  {(touchLayout || !isDivided) && remainingSecs > 0 && (
                     <div
                       className="rw-countdown-badge"
                       title={currentTimerMode === 'on' ? t('activeTimerRemainingOn') : t('activeTimerRemainingOff')}
@@ -573,7 +583,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                       disabled={!isOnline || !!pulseSending[key]}
                       data-active={isCustomActive ? 'true' : 'false'}
                       className="rw-timer-chip"
-                      aria-label={`${t('timeCustom')} - ${channelName}`}
+                      aria-label={`${t('timeCustom')} - ${channelName}${isCustomActive ? `: ${formatTimerDuration(remainingSecs)}` : ''}`}
                     >
                       {isCustomActive ? formatTimerDuration(remainingSecs) : t('timeCustom')}
                     </button>
@@ -587,18 +597,23 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
 
       {/* Custom Timer Dialog */}
       {customModalChannel && (
-        <div className="rw-modal-overlay" onClick={() => setCustomModalChannel(null)}>
-          <div className="rw-modal-content" onClick={(e) => e.stopPropagation()}>
+        <dialog
+          ref={timerDialogRef}
+          className="rw-timer-dialog"
+          aria-labelledby={timerTitleId}
+          onClose={() => setCustomModalChannel(null)}
+        >
+          <div className="rw-modal-content">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fafafa', fontSize: 13, fontWeight: 650 }}>
                 <Clock size={16} color="var(--rw-accent)" />
-                <span>
+                <span id={timerTitleId}>
                   {customModalChannel.mode === 'on' ? t('timeCustomTitleOn') : t('timeCustomTitleOff')}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => setCustomModalChannel(null)}
+                onClick={() => timerDialogRef.current?.close()}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -626,6 +641,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     type="number"
                     min={0}
                     max={1080}
+                    aria-label={customModalChannel.mode === 'on' ? t('customMinutesLabelOn') : t('customMinutesLabelOff')}
                     value={customMins}
                     onChange={(e) => setCustomMins(Math.max(0, parseInt(e.target.value || '0', 10)))}
                     style={{
@@ -647,6 +663,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                     type="number"
                     min={0}
                     max={59}
+                    aria-label={t('customSecondsLabel')}
                     value={customSecs}
                     onChange={(e) => setCustomSecs(Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))))}
                     style={{
@@ -673,7 +690,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                         0,
                         customModalChannel.mode
                       );
-                      setCustomModalChannel(null);
+                      timerDialogRef.current?.close();
                     }}
                     style={{
                       padding: '6px 12px',
@@ -695,7 +712,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
                     type="button"
-                    onClick={() => setCustomModalChannel(null)}
+                    onClick={() => timerDialogRef.current?.close()}
                     style={{
                       padding: '6px 12px',
                       borderRadius: 8,
@@ -727,7 +744,7 @@ export const RelayToggleWidget: React.FC<WidgetProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
     </article>
   );

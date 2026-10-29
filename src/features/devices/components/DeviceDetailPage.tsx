@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDeviceStore } from '../store/device-store';
 import { tasmotaHttp } from '@/core/http/tasmota-http-client';
 import { pollScheduler } from '@/core/http/poll-scheduler';
+import { sessionFetch } from '@/core/http/session-fetch';
 import {
   Plus,
   Trash2,
@@ -77,7 +78,7 @@ export const DeviceDetailPage: React.FC = () => {
     const sub = targetSubnet !== undefined ? targetSubnet : scanSubnet;
     const query = sub.trim() ? `?subnet=${encodeURIComponent(sub.trim())}` : '';
     try {
-      const res = await fetch(`/api/devices/discover${query}`);
+      const res = await sessionFetch(`/api/devices/discover${query}`);
       if (res.ok) {
         const data = await res.json();
         setDiscoveredDevices(data.devices || []);
@@ -339,7 +340,7 @@ export const DeviceDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="min-w-0 w-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 [overflow-wrap:anywhere] max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 max-sm:[&_a]:min-h-11 max-sm:[&_input:not([type=checkbox]):not([type=radio])]:text-base max-sm:[&_input:not([type=checkbox]):not([type=radio])]:min-h-11 [&_input]:min-w-0">
       {/* Top Banner / Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-800/60">
         <div>
@@ -348,7 +349,7 @@ export const DeviceDetailPage: React.FC = () => {
               <Cpu className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
+              <h2 className="text-xl font-bold tracking-tight text-zinc-100 flex flex-wrap items-center gap-2">
                 {t('devicesManagementTitle')}
                 <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/70 text-zinc-400 font-mono">
                   {deviceList.length} {t('tabDevices')}
@@ -361,7 +362,7 @@ export const DeviceDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => {
@@ -396,7 +397,7 @@ export const DeviceDetailPage: React.FC = () => {
       {/* Main Grid: Sidebar (35%) + Detail Cockpit (65%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* SIDEBAR: Search, Filters & Device List */}
-        <div className="lg:col-span-4 space-y-3.5">
+        <div className="min-w-0 lg:col-span-4 space-y-3.5">
           {/* Search & Filter Bar */}
           <div className="bg-zinc-900/80 border border-zinc-800/90 rounded-2xl p-3 shadow-md space-y-2.5">
             <div className="relative">
@@ -406,12 +407,14 @@ export const DeviceDetailPage: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('searchDevicePlaceholder')}
-                className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-amber-500/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
+                aria-label={t('searchDevicePlaceholder')}
+                className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-amber-500/80 rounded-xl pl-9 pr-12 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                  aria-label={`${t('clearAll')}: ${t('search')}`}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-500 hover:text-zinc-300"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -459,7 +462,7 @@ export const DeviceDetailPage: React.FC = () => {
           </div>
 
           {/* Device Cards List */}
-          <div className="space-y-2">
+          <div className="max-h-64 overflow-y-auto overscroll-contain space-y-2 p-1 lg:max-h-none lg:overflow-visible">
             {filteredDevices.length === 0 ? (
               <div className="p-8 bg-zinc-900/40 rounded-2xl border border-dashed border-zinc-800 text-center space-y-3">
                 <div className="w-10 h-10 rounded-full bg-zinc-800/80 mx-auto flex items-center justify-center text-zinc-500">
@@ -480,16 +483,6 @@ export const DeviceDetailPage: React.FC = () => {
                 return (
                   <div
                     key={dev.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-selected={isSelected}
-                    onClick={() => setSelectedId(dev.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedId(dev.id);
-                      }
-                    }}
                     className={cn(
                       'group relative p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-2',
                       isSelected
@@ -497,7 +490,14 @@ export const DeviceDetailPage: React.FC = () => {
                         : 'bg-zinc-900/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700/80'
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(dev.id)}
+                      aria-pressed={!!isSelected}
+                      aria-label={`${dev.friendlyName} (${dev.ipAddress})`}
+                      className="absolute inset-0 w-full rounded-2xl focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-2"
+                    />
+                    <div className="pointer-events-none flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
                           className={cn(
@@ -529,12 +529,11 @@ export const DeviceDetailPage: React.FC = () => {
 
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfirmDeleteId(dev.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition-all"
-                          title="Xóa thiết bị"
+                          type="button"
+                          onClick={() => setConfirmDeleteId(dev.id)}
+                          className="pointer-events-auto relative min-h-11 min-w-11 flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition-all"
+                          aria-label={`${t('deleteDeviceBtn')}: ${dev.friendlyName}`}
+                          title={t('deleteDeviceBtn')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -567,9 +566,9 @@ export const DeviceDetailPage: React.FC = () => {
         </div>
 
         {/* DETAIL COCKPIT: Header + Tabs */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="min-w-0 lg:col-span-8 space-y-4 [&_h3]:break-words [&_h5]:break-words [&_svg]:shrink-0">
           {activeDevice ? (
-            <div className="bg-gradient-to-b from-zinc-900/95 via-zinc-900/90 to-zinc-950 border border-zinc-800/90 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5">
+            <div className="bg-gradient-to-b from-zinc-900/95 via-zinc-900/90 to-zinc-950 border border-zinc-800/90 rounded-2xl p-3 sm:p-6 shadow-2xl space-y-5">
               {/* Cockpit Header with Quick Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
                 <div className="space-y-1">
@@ -592,7 +591,7 @@ export const DeviceDetailPage: React.FC = () => {
                       {activeDevice.hardware || 'ESP8266'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-zinc-400 font-mono">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400 font-mono break-all">
                     <span>IP: {activeDevice.ipAddress}</span>
                     {activeDevice.macAddress && (
                       <>
@@ -647,7 +646,7 @@ export const DeviceDetailPage: React.FC = () => {
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex items-center gap-1 border-b border-zinc-800/80 pb-2 overflow-x-auto">
+              <div className="flex min-w-0 max-w-full items-center gap-1 border-b border-zinc-800/80 pb-2 overflow-x-auto overscroll-x-contain" role="group" aria-label={t('devicesManagementTitle')}>
                 <button
                   onClick={() => setActiveTab('controls')}
                   className={cn(
@@ -847,7 +846,7 @@ export const DeviceDetailPage: React.FC = () => {
                         <Gauge className="w-3.5 h-3.5 text-amber-400" />
                         <span>{t('energyTelemetryTitle')}</span>
                       </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div className="bg-zinc-950/70 p-3 rounded-xl border border-zinc-850">
                           <span className="text-[10px] text-zinc-500 uppercase font-semibold">{t('voltage')}</span>
                           <div className="mt-1 font-mono text-amber-400 font-bold text-sm">
@@ -886,7 +885,7 @@ export const DeviceDetailPage: React.FC = () => {
               {/* TAB 2: NETWORK & TELEMETRY */}
               {activeTab === 'network' && (
                 <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     {/* Wi-Fi Signal Meter */}
                     <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-zinc-800/80 space-y-1">
                       <span className="text-[10px] uppercase text-zinc-500 font-semibold flex items-center gap-1.5">
@@ -1110,10 +1109,13 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* MODAL: Thêm Thiết Bị Mới */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
           <form
             onSubmit={handleAddSubmit}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('addDeviceModalTitle')}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
@@ -1219,8 +1221,8 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* MODAL: Xác nhận Xóa Thiết Bị (Thay thế native confirm) */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-label={t('confirmDeleteTitle')} className="bg-zinc-900 border border-rose-500/30 rounded-2xl p-4 sm:p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain shadow-2xl space-y-4 break-words animate-in fade-in zoom-in-95 duration-200">
             <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
               <Trash2 className="w-5 h-5" />
             </div>
@@ -1258,8 +1260,8 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* MODAL: Xác nhận Khởi Động Lại (Restart 1) */}
       {confirmRestartId && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-label={t('confirmRestartQuestion')} className="bg-zinc-900 border border-amber-500/30 rounded-2xl p-4 sm:p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <RotateCcw className="w-5 h-5" />
             </div>
@@ -1295,7 +1297,7 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* MODAL: Quét Mạng LAN (P3 Auto-Discovery) */}
       {showScanModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">

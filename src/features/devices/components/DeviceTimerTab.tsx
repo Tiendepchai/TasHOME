@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TasmotaDevice, DeviceState, TasmotaTimerConfig } from '../store/device-store.types';
 import { useDeviceStore } from '../store/device-store';
 import { tasmotaHttp } from '@/core/http/tasmota-http-client';
@@ -78,6 +78,11 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
     Action: 1
   });
   const [savingTimer, setSavingTimer] = useState(false);
+  const scheduleDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (editingTimerIndex !== null) scheduleDialogRef.current?.showModal();
+  }, [editingTimerIndex]);
 
   // Available relay channels
   const channelSet = new Set<string>();
@@ -304,7 +309,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
           }
         });
         addToast(t('toastTimerSaved'), 'success');
-        setEditingTimerIndex(null);
+        scheduleDialogRef.current?.close();
       } else {
         addToast(t('error'), 'error');
       }
@@ -339,7 +344,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
         });
         addToast(t('toastTimerDeleted'), 'info');
         if (editingTimerIndex === timerNum) {
-          setEditingTimerIndex(null);
+          scheduleDialogRef.current?.close();
         }
       }
     } catch {
@@ -384,7 +389,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
     : allTimerIndices;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="min-w-0 space-y-6 animate-in fade-in duration-200 max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 max-sm:[&_input:not([type=checkbox]):not([type=radio])]:text-base max-sm:[&_input:not([type=checkbox]):not([type=radio])]:min-h-11 max-sm:[&_select]:text-base max-sm:[&_select]:min-h-11 [&_input]:min-w-0 [&_select]:min-w-0">
       {/* SECTION 1: PULSETIME AUTO-OFF CONFIGURATION */}
       <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-3.5">
@@ -842,21 +847,24 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                             type="button"
                             onClick={() => handleToggleSingleTimer(timerNum, timer)}
                             disabled={!isOnline}
-                            className={cn(
-                              'w-6 h-3 rounded-full transition-colors relative p-0.5',
-                              isEnabled ? 'bg-emerald-500' : 'bg-zinc-700'
-                            )}
+                            className="min-w-11 min-h-11 flex items-center justify-center rounded-lg"
+                            role="switch"
+                            aria-checked={isEnabled}
+                            aria-label={`${t('timerEnabled')} #${timerNum}`}
                           >
-                            <span
-                              className={cn(
-                                'block w-2 h-2 rounded-full bg-white transition-transform',
-                                isEnabled ? 'translate-x-3' : 'translate-x-0'
-                              )}
-                            />
+                            <span className={cn('w-6 h-3 rounded-full p-0.5', isEnabled ? 'bg-emerald-500' : 'bg-zinc-700')}>
+                              <span
+                                className={cn(
+                                  'block w-2 h-2 rounded-full bg-white transition-transform',
+                                  isEnabled ? 'translate-x-3' : 'translate-x-0'
+                                )}
+                              />
+                            </span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleOpenEditTimer(timerNum)}
+                            aria-label={`${t('editTimerTitle')} #${timerNum}`}
                             className="p-1 text-zinc-400 hover:text-amber-400"
                           >
                             <Edit2 className="w-3 h-3" />
@@ -881,24 +889,24 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
 
       {/* MODAL: ADD / EDIT TIMER */}
       {editingTimerIndex !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
-          onClick={() => setEditingTimerIndex(null)}
+        <dialog
+          ref={scheduleDialogRef}
+          onClose={() => setEditingTimerIndex(null)}
+          aria-labelledby="schedule-dialog-title"
+          className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-zinc-900 text-zinc-100 border border-zinc-750 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-sm"
         >
-          <div
-            className="bg-zinc-900 border border-zinc-750 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-amber-400" />
-                <h4 className="font-bold text-sm text-zinc-100">
+                <h4 id="schedule-dialog-title" className="font-bold text-sm text-zinc-100">
                   {isCreatingNew ? t('addSchedule') : `${t('editTimerTitle')} (#${editingTimerIndex})`}
                 </h4>
               </div>
               <button
                 type="button"
-                onClick={() => setEditingTimerIndex(null)}
+                onClick={() => scheduleDialogRef.current?.close()}
+                aria-label={t('close')}
                 className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -1017,11 +1025,11 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
 
               {/* Days of Week selection */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 mb-1.5">
                   <label className="text-xs font-semibold text-zinc-300">
                     {t('daysOfWeek')}
                   </label>
-                  <div className="flex items-center gap-1.5 text-[11px]">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                     <button
                       type="button"
                       onClick={() => setEditTimerForm((prev) => ({ ...prev, Days: '1111111' }))}
@@ -1048,13 +1056,14 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                   </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(44px,1fr))] gap-1" role="group" aria-label={t('daysOfWeek')}>
                   {DAY_KEYS.map((d) => {
                     const active = isDayActive(editTimerForm.Days, d.index);
                     return (
                       <button
                         key={d.index}
                         type="button"
+                        aria-pressed={active}
                         onClick={() =>
                           setEditTimerForm((prev) => ({
                             ...prev,
@@ -1062,7 +1071,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                           }))
                         }
                         className={cn(
-                          'py-1.5 rounded-lg text-xs font-bold border transition-all text-center',
+                          'min-h-11 py-1.5 rounded-lg text-xs font-bold border transition-all text-center',
                           active
                             ? 'bg-amber-500 text-zinc-950 border-amber-400 shadow-sm'
                             : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
@@ -1104,7 +1113,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditingTimerIndex(null)}
+                    onClick={() => scheduleDialogRef.current?.close()}
                     className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold border border-zinc-700 transition-all"
                   >
                     {t('cancelBtn')}
@@ -1120,7 +1129,7 @@ export const DeviceTimerTab: React.FC<DeviceTimerTabProps> = ({ device, state })
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

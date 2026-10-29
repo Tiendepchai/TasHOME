@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDashboardStore } from '../store/dashboard-store';
 import { useDeviceStore } from '@/features/devices/store/device-store';
 import { getWidgetDefinition } from '@/features/widgets/registry/widget-registry';
@@ -28,6 +28,17 @@ export const DashboardPage: React.FC = () => {
   const activeDash = dashboards.find((d) => d.id === activeDashboardId) || dashboards[0];
   const [showAddModal, setShowAddModal] = useState(false);
   const [targetDeviceId, setTargetDeviceId] = useState<string>('');
+  const [canDrag, setCanDrag] = useState(false);
+  const dragPointerRef = useRef('');
+
+  useEffect(() => {
+    // ponytail: touch editing uses the modal; drag/resize stays desktop mouse-only.
+    const media = window.matchMedia('(min-width: 768px) and (hover: hover) and (pointer: fine)');
+    const update = () => setCanDrag(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // Drag to resize state (invisible edge hit areas)
   const gridRef = useRef<HTMLDivElement>(null);
@@ -51,6 +62,13 @@ export const DashboardPage: React.FC = () => {
   const [editColSpan, setEditColSpan] = useState<1 | 2 | 3>(1);
   const [editRowSpan, setEditRowSpan] = useState<1 | 2 | 3>(1);
   const [editVisibleChannels, setEditVisibleChannels] = useState<string[]>([]);
+  const addDialogRef = useRef<HTMLDialogElement>(null);
+  const editDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (showAddModal) addDialogRef.current?.showModal();
+    if (editingWidget) editDialogRef.current?.showModal();
+  }, [showAddModal, editingWidget]);
 
   const getDeviceChannels = (devId: string) => {
     const dev = devices[devId];
@@ -110,14 +128,14 @@ export const DashboardPage: React.FC = () => {
           ? { ...editingWidget.config.settings, visibleChannels: editVisibleChannels }
           : undefined
     });
-    setEditingWidget(null);
+    editDialogRef.current?.close();
     addToast(t('toastWidgetUpdated'), 'success');
   };
 
   const handleDeleteWidget = () => {
     if (!editingWidget) return;
+    editDialogRef.current?.close();
     removeWidget(editingWidget.instanceId);
-    setEditingWidget(null);
     addToast(t('toastWidgetRemoved'), 'info');
   };
 
@@ -128,6 +146,7 @@ export const DashboardPage: React.FC = () => {
     initialColSpan: 1 | 2 | 3,
     initialRowSpan: 1 | 2 | 3
   ) => {
+    if (e.pointerType !== 'mouse' || window.matchMedia('(max-width: 767px), (pointer: coarse)').matches) return;
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
@@ -243,7 +262,7 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowAddModal(true)}
-            className="min-h-[40px] flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+            className="min-h-11 sm:min-h-10 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t('addWidget')}</span>
@@ -251,7 +270,7 @@ export const DashboardPage: React.FC = () => {
 
           <button
             onClick={resetDefaultLayout}
-            className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 text-xs transition-colors active:scale-95 cursor-pointer"
+            className="min-w-11 sm:min-w-10 min-h-11 sm:min-h-10 flex items-center justify-center p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 text-xs transition-colors active:scale-95 cursor-pointer"
             title={t('resetLayout')}
             aria-label={t('resetLayout')}
           >
@@ -303,8 +322,13 @@ export const DashboardPage: React.FC = () => {
             return (
               <div
                 key={widgetInst.instanceId}
-                draggable={!isThisResizing}
+                draggable={canDrag && !isThisResizing}
+                onPointerDownCapture={(e) => { dragPointerRef.current = e.pointerType; }}
                 onDragStart={(e) => {
+                  if (!canDrag || dragPointerRef.current !== 'mouse' || (e.target as HTMLElement).closest('button, input, select, a, dialog')) {
+                    e.preventDefault();
+                    return;
+                  }
                   e.dataTransfer.setData('text/plain', widgetInst.instanceId);
                   e.dataTransfer.effectAllowed = 'move';
                   setDragIndex(idx);
@@ -332,7 +356,8 @@ export const DashboardPage: React.FC = () => {
                   setDraggingInstanceId(null);
                 }}
                 className={cn(
-                  'relative group transition-all duration-200 select-none rounded-2xl h-full flex flex-col cursor-grab active:cursor-grabbing',
+                  'relative group min-w-0 transition-all duration-200 select-none rounded-2xl h-full flex flex-col motion-reduce:transition-none',
+                  canDrag && 'cursor-grab active:cursor-grabbing',
                   getColSpanClass(activeColSpan),
                   getRowSpanClass(activeRowSpan),
                   isThisResizing && 'ring-1 ring-amber-400/50',
@@ -342,6 +367,7 @@ export const DashboardPage: React.FC = () => {
               >
                 {/* Invisible right edge resize handle (width) */}
                 <div
+                  hidden={!canDrag}
                   onPointerDown={(e) =>
                     startResizing(e, widgetInst.instanceId, 'width', activeColSpan as 1 | 2 | 3, activeRowSpan as 1 | 2 | 3)
                   }
@@ -350,6 +376,7 @@ export const DashboardPage: React.FC = () => {
 
                 {/* Invisible bottom edge resize handle (height) */}
                 <div
+                  hidden={!canDrag}
                   onPointerDown={(e) =>
                     startResizing(e, widgetInst.instanceId, 'height', activeColSpan as 1 | 2 | 3, activeRowSpan as 1 | 2 | 3)
                   }
@@ -358,6 +385,7 @@ export const DashboardPage: React.FC = () => {
 
                 {/* Invisible bottom-right corner resize handle (both) */}
                 <div
+                  hidden={!canDrag}
                   onPointerDown={(e) =>
                     startResizing(e, widgetInst.instanceId, 'both', activeColSpan as 1 | 2 | 3, activeRowSpan as 1 | 2 | 3)
                   }
@@ -373,7 +401,10 @@ export const DashboardPage: React.FC = () => {
                     e.stopPropagation();
                     openEditModal(widgetInst);
                   }}
-                  className="absolute top-3 right-3 z-30 min-w-[32px] min-h-[32px] rounded-xl bg-zinc-900/90 hover:bg-amber-500 hover:text-zinc-950 text-zinc-400 border border-zinc-700/70 hover:border-amber-400 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 transition-all duration-200 shadow-lg cursor-pointer backdrop-blur-md active:scale-95"
+                  className={cn(
+                    'absolute top-3 right-3 z-30 rounded-xl bg-zinc-900/90 hover:bg-amber-500 hover:text-zinc-950 text-zinc-400 border border-zinc-700/70 hover:border-amber-400 flex items-center justify-center transition-all duration-200 shadow-lg cursor-pointer backdrop-blur-md active:scale-95',
+                    canDrag ? 'min-w-8 min-h-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100' : 'min-w-11 min-h-11 opacity-100'
+                  )}
                   title={t('editWidget')}
                   aria-label={t('editWidget')}
                 >
@@ -441,15 +472,20 @@ export const DashboardPage: React.FC = () => {
 
       {/* Add Widget Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-zinc-100">{t('addWidgetModalTitle')}</h3>
+        <dialog
+          ref={addDialogRef}
+          onClose={() => setShowAddModal(false)}
+          aria-labelledby="add-widget-title"
+          className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-md max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 max-sm:[&_input:not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11"
+        >
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+              <div className="min-w-0">
+                <h3 id="add-widget-title" className="font-bold text-base text-zinc-100">{t('addWidgetModalTitle')}</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">{t('addWidgetModalDesc')}</p>
               </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => addDialogRef.current?.close()}
                 aria-label={t('closeAddModal')}
                 className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
@@ -465,6 +501,7 @@ export const DashboardPage: React.FC = () => {
                     {t('selectDeviceForWidget')}
                   </label>
                   <select
+                    aria-label={t('selectDeviceForWidget')}
                     value={targetDeviceId || Object.keys(devices)[0] || ''}
                     onChange={(e) => setTargetDeviceId(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-100 font-mono focus:outline-none focus:border-amber-500"
@@ -499,7 +536,7 @@ export const DashboardPage: React.FC = () => {
                         return;
                       }
                       addWidget(item.type, [devId], item.name, item.defSpan as 1 | 2 | 3, 1);
-                      setShowAddModal(false);
+                      addDialogRef.current?.close();
                       addToast(`${t('toastWidgetAdded')}: ${item.name}`, 'success');
                     }}
                     className="w-full text-left p-3.5 rounded-xl bg-zinc-950/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-500/40 transition-all flex flex-col group disabled:opacity-40 disabled:cursor-not-allowed"
@@ -513,26 +550,31 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* Edit Widget Modal */}
       {editingWidget && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <dialog
+          ref={editDialogRef}
+          onClose={() => setEditingWidget(null)}
+          aria-labelledby="edit-widget-title"
+          className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-md max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 max-sm:[&_input:not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11"
+        >
+          <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
                   <Pencil className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-zinc-100">{t('editWidgetModalTitle')}</h3>
+                  <h3 id="edit-widget-title" className="font-bold text-sm text-zinc-100">{t('editWidgetModalTitle')}</h3>
                   <p className="text-[11px] text-zinc-400 mt-0.5">{t('editWidgetModalDesc')}</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setEditingWidget(null)}
+                onClick={() => editDialogRef.current?.close()}
                 aria-label={t('close')}
                 className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
@@ -688,11 +730,11 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-800 gap-3">
+              <div className="flex flex-wrap items-center justify-between pt-3 border-t border-zinc-800 gap-3">
                 <button
                   type="button"
                   onClick={handleDeleteWidget}
-                  className="min-h-[40px] px-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  className="min-h-11 sm:min-h-10 px-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>{t('deleteWidgetBtn')}</span>
@@ -701,14 +743,14 @@ export const DashboardPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditingWidget(null)}
-                    className="min-h-[40px] px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs transition-all cursor-pointer"
+                    onClick={() => editDialogRef.current?.close()}
+                    className="min-h-11 sm:min-h-10 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs transition-all cursor-pointer"
                   >
                     {t('cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="min-h-[40px] px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                    className="min-h-11 sm:min-h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>{t('saveWidgetBtn')}</span>
@@ -717,7 +759,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

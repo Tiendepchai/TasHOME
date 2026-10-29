@@ -1,0 +1,11 @@
+[Unit]
+Description=Check TasHOME stable releases every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=tashome-update.service
+
+[Install]
+WantedBy=timers.target

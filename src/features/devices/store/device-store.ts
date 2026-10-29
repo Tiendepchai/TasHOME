@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { sessionFetch, getSessionEpoch } from '@/core/http/session-fetch';
 import type {
   DeviceStoreState,
   TasmotaDevice,
@@ -13,9 +14,11 @@ export const useDeviceStore = create<DeviceStoreState>((set, get) => ({
   fetchDevices: async () => {
     if (typeof window === 'undefined') return;
     try {
-      const res = await fetch('/api/devices');
+      const epoch = getSessionEpoch();
+      const res = await sessionFetch('/api/devices');
       if (res.ok) {
         const data = await res.json();
+        if (epoch !== getSessionEpoch()) return;
         if (data && typeof data === 'object' && !Array.isArray(data)) {
           set((state) => {
             const nextStates = { ...state.deviceStates };
@@ -66,7 +69,7 @@ export const useDeviceStore = create<DeviceStoreState>((set, get) => ({
     }));
 
     // Server persistence
-    fetch('/api/devices', {
+    sessionFetch('/api/devices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newDevice)
@@ -88,7 +91,7 @@ export const useDeviceStore = create<DeviceStoreState>((set, get) => ({
     });
 
     // Server persistence
-    fetch(`/api/devices/${id}`, {
+    sessionFetch(`/api/devices/${id}`, {
       method: 'DELETE'
     }).catch(() => {});
   },
@@ -102,7 +105,7 @@ export const useDeviceStore = create<DeviceStoreState>((set, get) => ({
     });
 
     // Server persistence
-    fetch(`/api/devices/${id}`, {
+    sessionFetch(`/api/devices/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(partial)

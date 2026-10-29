@@ -126,19 +126,15 @@ The application will be accessible at `http://localhost:3000`.
 | `PORT` | No | `3000` | Web server listening port |
 | `RELAY_HOST` | No | `192.168.1.140` | Default primary Tasmota device IP address |
 | `RELAY_PORT` | No | `80` | Default Tasmota HTTP port |
-| `SESSION_SECRET` | No | `smarthome-relay-secret-key-32bytes!` | Secret string used for signing 24h HMAC session cookies |
+| `SESSION_SECRET` | Production | Development-only fallback | Private signing key of at least 32 characters; production rejects the known fallback |
+| `TASHOME_STATE_DIR` | No | Current directory | Persistent `data/` and `.totp_secret` location |
+| `NODE_ENV` | Production | Unset | Set to `production` to enforce provisioned credentials |
 
 ## Usage
 
-1. Start server with `npm start`.
-2. Inspect terminal log for initial TOTP Secret or QR Code link:
-   ```text
-   [ASTRA] Smart Home server running at http://0.0.0.0:3000
-   [2FA] Secret Key: JBSWY3DPEHPK3PXP
-   [2FA] OTPAuth: otpauth://totp/TasHOME:admin?secret=JBSWY3DPEHPK3PXP&issuer=TasHOME
-   ```
-3. Add the secret key to Google Authenticator or 1Password.
-4. Open `http://localhost:3000`, enter the 6-digit code, and start managing relays.
+1. Start server with `npm start`. A fresh development installation creates a private `.totp_secret` file; production requires an existing provisioned key.
+2. For a new local installation only, register that key privately in Google Authenticator or 1Password. Never share it, commit it, or put it in logs. Existing installations keep their registered authenticator unchanged.
+3. Open `http://localhost:3000`, enter the 6-digit code, and start managing relays. Startup logs never print credentials.
 
 ## Project Structure
 
@@ -202,43 +198,73 @@ npm run preview
 ## Testing
 
 ```bash
-# Run unit tests for state parsing and authentication utilities
-node test.js
+npm ci
+npm run check
+npm run build
+node scripts/binary.self-check.mjs
+python3 -I deploy/rollback.self-check.py
 ```
 
-> **Note**: Avoid running test suites that rotate `.totp_secret` in production to prevent desynchronizing your active 2FA authenticator.
+**Do not run root `npm test` or `node test.js` against a working installation.** The legacy suite can rotate `.totp_secret`. Backend smoke checks use temporary directories, fixture credentials, and loopback-only requests; real state and devices are never used.
 
 ## Deployment
 
-### Production Server (Systemd)
+### Standalone Linux ARM64 binary
 
-1. Build assets and verify server:
-   ```bash
-   npm run build
-   ```
-2. Create systemd service unit `/etc/systemd/system/tashome.service`:
-   ```ini
-   [Unit]
-   Description=TasHOME Smart Home Relay Server
-   After=network.target
+Bun **1.4.4** packages the backend and built SPA into one executable. Node/npm/Bun are not required on the server; the update helper uses Python 3's standard library and systemd.
 
-   [Service]
-   Type=simple
-   User=tien
-   WorkingDirectory=/opt/smarthome
-   ExecStart=/usr/bin/node /opt/smarthome/server.js
-   Restart=always
-   RestartSec=5
-   Environment=PORT=3000
+```bash
+npm ci
+npm run check
+npm run build
+npm run build:binary
+# Run on Linux ARM64, not on a different architecture:
+node scripts/binary.self-check.mjs artifacts/bun-linux-arm64/tashome-linux-arm64
+```
 
-   [Install]
-   WantedBy=multi-user.target
-   ```
-3. Enable and start:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now tashome
-   ```
+Output: `tashome-linux-arm64`, `manifest.json`, `SHA256SUMS` under `artifacts/bun-linux-arm64/`. Credentials, `.env`, `data/`, source files, and node_modules are not packaged. SHA256 checksums detect corruption; they are not an independent publisher signature. GitHub repository/release permissions remain the trust boundary.
+
+### CI and approved releases
+
+- `ci.yml`: GitHub-hosted ARM64 runner, pinned Node/Bun/actions, typecheck, UI checks, isolated Node/binary smoke, deployment rollback checks.
+- `release.yml`: run from `main`, or push a tag `binary-<full-40-character-commit-SHA>` on the reviewed delivery commit. No merge is automatic.
+- Configure GitHub Environment **production** with a required maintainer reviewer and allowed refs `main` / tag `binary-*`. Approve the publishing job in GitHub Actions after CI passes.
+- Only the tested artifact is uploaded; the release stays draft until every asset exists. Publishing marks it latest stable.
+- The server timer checks the fixed public repository's latest stable release about every five minutes. Unchanged healthy versions are skipped. No GitHub SSH key or self-hosted runner is required.
+
+### Existing systemd installation
+
+The deployment helpers target `smarthome.service`, port `3000`, and existing state in `/opt/smarthome`. Inspect and back up the actual unit, drop-ins, state, and credentials **on the server** before first conversion. Do not copy local state or `.totp_secret*` to production.
+
+| Path | Ownership / purpose |
+|---|---|
+| `/opt/tashome/releases/<sha>/tashome` | Root-owned immutable executable |
+| `/opt/tashome/current` | Atomic active-release symlink |
+| `/opt/smarthome/data/` and `.totp_secret` | Existing service-user-owned persistent state; unchanged |
+| `/etc/tashome/runtime.env` | Root-owned `0600` runtime environment |
+| `/usr/local/lib/tashome/` | Root-owned installer/updater helpers |
+
+Runtime environment must provide `NODE_ENV=production`, `TASHOME_STATE_DIR=/opt/smarthome`, and a private `SESSION_SECRET` of at least 32 characters. Preserve existing `PORT`, `RELAY_HOST`, and other runtime settings. Production refuses to regenerate a missing TOTP identity. Replacing an insecure session-signing default invalidates existing sessions, **not** the authenticator key.
+
+After reviewing the helpers and provisioning the environment/backups, install from a trusted staging directory:
+
+```bash
+sudo install -d -o root -g root -m 0755 /usr/local/lib/tashome /opt/tashome
+sudo install -o root -g root -m 0755 scripts/deploy.sh scripts/update.sh /usr/local/lib/tashome/
+sudo install -o root -g root -m 0644 deploy/release.py deploy/smarthome.conf /usr/local/lib/tashome/
+sudo install -o root -g root -m 0644 deploy/tashome-update.service deploy/tashome-update.timer /etc/systemd/system/
+sudo /usr/local/lib/tashome/deploy.sh /absolute/path/to/verified-artifacts
+# Enable automatic updates only after the first deployment succeeds:
+sudo systemctl daemon-reload
+sudo systemctl enable --now tashome-update.timer
+curl --fail http://127.0.0.1:3000/healthz
+```
+
+Deployment validates architecture, manifest/checksums, and runtime prerequisites before switching. It restarts the existing service, checks health SHA and SPA assets, and restores the previous symlink/drop-in on failure. First-install recovery returns to the original Node service. State is never rolled back automatically; there are no schema changes or automatic release deletions.
+
+For operator-controlled rollback, disable the timer, run `deploy.sh` with a previously verified artifact directory, then verify `/healthz` and SPA. Keep original source/Node and restricted backups until the migration is accepted. Process-kill/power-loss recovery may require operator intervention.
+
+SSH provisioning uses `/usr/bin/ssh -o BatchMode=yes` with normal host-key verification. Do not disable host verification or open SSH solely for CI. No device command is used for deployment health checks.
 
 ## Roadmap
 

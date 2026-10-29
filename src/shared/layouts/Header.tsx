@@ -1,6 +1,5 @@
 import React from 'react';
-import { Cpu, RefreshCw, Shield, LayoutDashboard, Radio } from 'lucide-react';
-import { useDeviceStore } from '@/features/devices/store/device-store';
+import { Cpu, RefreshCw, Shield, LayoutDashboard, Radio, Lock } from 'lucide-react';
 import { pollScheduler } from '@/core/http/poll-scheduler';
 import { useTranslation } from '@/core/i18n';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
@@ -12,91 +11,73 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onLogout }) => {
-  const devices = useDeviceStore((s) => s.devices);
-  const deviceStates = useDeviceStore((s) => s.deviceStates);
   const [refreshing, setRefreshing] = React.useState(false);
   const { t } = useTranslation();
+  const tabs = [
+    { id: 'dashboard', label: t('tabDashboard'), icon: LayoutDashboard },
+    { id: 'devices', label: t('tabDevices'), icon: Cpu },
+    { id: 'auth', label: t('tabAuth'), icon: Shield }
+  ] as const;
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await pollScheduler.pollNow();
-    setTimeout(() => setRefreshing(false), 500);
+    try {
+      await pollScheduler.pollNow();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 px-4 h-14 flex items-center">
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2">
-        {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm shadow-amber-500/10">
-            <Radio className="w-4 h-4" />
+    <header className="app-header sticky top-0 z-40 bg-zinc-950/95 md:backdrop-blur-md border-b border-zinc-800/80 px-4">
+      <div className="max-w-7xl mx-auto w-full min-h-14 flex items-center justify-between gap-2">
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Radio className="w-4 h-4" aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-wide text-zinc-100 flex items-center gap-2">
-              TasHOME
-            </h1>
-          </div>
+          <h1 className="font-bold text-sm tracking-wide text-zinc-100">TasHOME</h1>
         </div>
 
-        {/* Nav Tabs */}
-        <nav className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800/80 text-xs">
-          <button
-            onClick={() => onSelectTab('dashboard')}
-            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
-              currentTab === 'dashboard'
-                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>{t('tabDashboard')}</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('devices')}
-            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
-              currentTab === 'devices'
-                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5" />
-            <span>{t('tabDevices')}</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('auth')}
-            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.97] cursor-pointer ${
-              currentTab === 'auth'
-                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm shadow-amber-500/20'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>{t('tabAuth')}</span>
-          </button>
+        <nav className="app-navigation" aria-label="TasHOME">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSelectTab(id)}
+              aria-current={currentTab === id ? 'page' : undefined}
+              className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs transition-colors active:scale-[0.98] md:flex-row md:gap-1.5 md:px-3 md:py-1.5 md:rounded-lg ${
+                currentTab === id
+                  ? 'bg-amber-500/15 text-amber-400 font-bold md:bg-amber-500 md:text-zinc-950'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+              }`}
+            >
+              <Icon className="w-5 h-5 md:w-3.5 md:h-3.5" aria-hidden="true" />
+              <span className="text-center leading-tight">{label}</span>
+            </button>
+          ))}
         </nav>
 
-        {/* Right Actions & Language Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
           <LanguageSelector />
-
           <button
+            type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            className="min-w-11 min-h-11 flex items-center justify-center rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 transition-colors disabled:opacity-50"
             title={t('refreshAll')}
             aria-label={t('refreshAll')}
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-400' : ''}`} aria-hidden="true" />
           </button>
-
           <button
+            type="button"
             onClick={onLogout}
-            className="min-h-[40px] px-3.5 text-xs font-semibold text-zinc-400 hover:text-rose-400 bg-zinc-900/90 hover:bg-rose-950/20 border border-zinc-800/80 hover:border-rose-900/40 rounded-xl transition-all active:scale-95 cursor-pointer"
+            className="min-w-11 min-h-11 flex items-center justify-center rounded-xl bg-zinc-900/90 hover:bg-rose-950/20 border border-zinc-800/80 text-zinc-400 hover:text-rose-400 transition-colors md:px-3.5"
+            title={t('lockSession')}
             aria-label={t('lockSession')}
           >
-            {t('lock')}
+            <Lock className="w-4 h-4 md:hidden" aria-hidden="true" />
+            <span className="hidden md:inline text-xs font-semibold">{t('lock')}</span>
           </button>
         </div>
       </div>

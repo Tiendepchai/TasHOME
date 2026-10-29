@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Key, ShieldAlert, Copy, Check, RefreshCw, Clock } from 'lucide-react';
 import { useTranslation } from '@/core/i18n';
+import { sessionFetch, getSessionEpoch } from '@/core/http/session-fetch';
 
 export const AuthSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -16,10 +17,11 @@ export const AuthSettingsPage: React.FC = () => {
 
   const fetchAuthInfo = async () => {
     try {
-      const res = await fetch('/api/auth/2fa');
+      const epoch = getSessionEpoch();
+      const res = await sessionFetch('/api/auth/2fa');
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        if (epoch === getSessionEpoch()) setData(json);
       }
     } catch {}
   };
@@ -44,7 +46,7 @@ export const AuthSettingsPage: React.FC = () => {
     }
     setRevoking(true);
     try {
-      const res = await fetch('/api/auth/revoke-key', { method: 'POST' });
+      const res = await sessionFetch('/api/auth/revoke-key', { method: 'POST' });
       if (res.ok) {
         await fetchAuthInfo();
       }
@@ -54,31 +56,31 @@ export const AuthSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
+    <div className="min-w-0 w-full p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-lg font-bold text-zinc-100">{t('authSettingsTitle')}</h2>
         <p className="text-xs text-zinc-400">{t('authSettingsSubtitle')}</p>
       </div>
 
-      <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-6 sm:p-7 space-y-6 shadow-xl backdrop-blur-md">
+      <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 sm:p-7 space-y-6 shadow-xl backdrop-blur-md">
         {/* Secret Key Display */}
         <div className="space-y-3">
           <label htmlFor="secret-key-input" className="text-xs font-semibold text-zinc-300 flex items-center gap-2 cursor-pointer">
             <Key className="w-4 h-4 text-amber-400" />
             <span>{t('base32SecretLabel')}</span>
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <input
               id="secret-key-input"
               aria-label={t('base32SecretLabel')}
               type="text"
               readOnly
               value={data.formatted || data.secret || t('loading')}
-              className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-400 select-all"
+              className="min-w-0 w-full sm:flex-1 min-h-11 bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-mono text-amber-400 select-all"
             />
             <button
               onClick={handleCopy}
-              className="min-h-[40px] px-3.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 border border-zinc-700/80 active:scale-95 transition-all cursor-pointer"
+              className="min-h-11 shrink-0 justify-center px-3.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 border border-zinc-700/80 active:scale-95 transition-all cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? t('copied') : t('copy')}</span>
@@ -91,7 +93,7 @@ export const AuthSettingsPage: React.FC = () => {
 
         {/* Live TOTP Verification Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
-          <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex items-center justify-between">
+          <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="text-xs text-zinc-500 block font-medium">{t('serverTotpCode')}</span>
               <span className="text-2xl font-bold font-mono text-emerald-400 mt-1 block tracking-wider">
@@ -116,14 +118,14 @@ export const AuthSettingsPage: React.FC = () => {
         </div>
 
         {/* Revoke Action */}
-        <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
+        <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-xs text-zinc-500">
             {t('revokeKeyWarning')}
           </div>
           <button
             onClick={handleRevoke}
             disabled={revoking}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 border border-rose-900/60 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            className="min-h-11 shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2 bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 border border-rose-900/60 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${revoking ? 'animate-spin' : ''}`} />
             <span>{t('revokeKeyBtn')}</span>

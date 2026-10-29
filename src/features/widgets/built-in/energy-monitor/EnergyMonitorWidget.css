@@ -329,6 +329,27 @@
   }
 }
 
+@media (max-width: 767px) {
+  .energy-monitor .em-identity {
+    padding-right: 48px;
+    flex-wrap: wrap;
+  }
+
+  .energy-monitor[data-layout] .em-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .energy-monitor[data-layout] .em-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .energy-monitor .em-metric-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .energy-monitor,
   .energy-monitor * {

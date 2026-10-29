@@ -2,6 +2,7 @@ export const HTTP_ERROR_TYPES = {
   TIMEOUT: 'timeout',
   CORS: 'cors',
   AUTH: 'auth',
+  SESSION: 'session',
   NETWORK: 'network',
   PARSE: 'parse',
   SERVER: 'server',

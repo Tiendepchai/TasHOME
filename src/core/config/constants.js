@@ -1,15 +1,22 @@
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+const production = isNode && process.env.NODE_ENV === 'production';
+const stateDir = (isNode && process.env.TASHOME_STATE_DIR) || '.';
+const sessionSecret = (isNode && process.env.SESSION_SECRET) || '';
+if (production && (sessionSecret.length < 32 || sessionSecret === 'smarthome-relay-secret-key-32bytes!')) {
+  throw new Error('Production requires a private SESSION_SECRET of at least 32 characters');
+}
 
 export const CONFIG = {
   RELAY_HOST: (isNode && process.env?.RELAY_HOST) || '192.168.1.140',
   RELAY_PORT: (isNode && Number(process.env?.RELAY_PORT)) || 80,
   PORT: (isNode && Number(process.env?.PORT)) || 3000,
-  SESSION_SECRET: (isNode && process.env?.SESSION_SECRET) || 'smarthome-relay-secret-key-32bytes!',
+  SESSION_SECRET: sessionSecret || 'smarthome-relay-secret-key-32bytes!',
+  STATE_DIR: stateDir,
   SESSION_TTL_MS: 24 * 3600 * 1000,
   SESSION_MAX_AGE_SEC: 86400,
   HTTP_TIMEOUT: 5000,
   POLL_INTERVAL_MS: 3000,
-  SECRET_FILE: isNode ? '.totp_secret' : ''
+  SECRET_FILE: isNode ? `${stateDir}/.totp_secret` : ''
 };
 
 export const TASMOTA_DEFAULTS = {
