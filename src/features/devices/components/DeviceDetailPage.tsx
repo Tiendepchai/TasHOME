@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDeviceStore } from '../store/device-store';
 import { tasmotaHttp } from '@/core/http/tasmota-http-client';
 import { pollScheduler } from '@/core/http/poll-scheduler';
+import { sessionFetch } from '@/core/http/session-fetch';
 import {
   Plus,
   Trash2,
@@ -77,7 +78,7 @@ export const DeviceDetailPage: React.FC = () => {
     const sub = targetSubnet !== undefined ? targetSubnet : scanSubnet;
     const query = sub.trim() ? `?subnet=${encodeURIComponent(sub.trim())}` : '';
     try {
-      const res = await fetch(`/api/devices/discover${query}`);
+      const res = await sessionFetch(`/api/devices/discover${query}`);
       if (res.ok) {
         const data = await res.json();
         setDiscoveredDevices(data.devices || []);

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslation } from '@/core/i18n';
+import { sessionFetch } from '@/core/http/session-fetch';
 
 export interface SceneAction {
   type: 'broadcast' | 'device';
@@ -76,7 +77,7 @@ export const QuickActionBar: React.FC = () => {
 
   const fetchScenes = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/scenes', { signal });
+      const res = await sessionFetch('/api/scenes', { signal });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -97,7 +98,7 @@ export const QuickActionBar: React.FC = () => {
     setExecutingSceneId(scene.id);
 
     try {
-      const res = await fetch(`/api/scenes/${encodeURIComponent(scene.id)}/execute`, {
+      const res = await sessionFetch(`/api/scenes/${encodeURIComponent(scene.id)}/execute`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -130,7 +131,7 @@ export const QuickActionBar: React.FC = () => {
     setSavingScene(true);
 
     try {
-      const res = await fetch('/api/scenes', {
+      const res = await sessionFetch('/api/scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -159,7 +160,7 @@ export const QuickActionBar: React.FC = () => {
 
   const handleDeleteScene = async (id: string, name: string) => {
     try {
-      const res = await fetch(`/api/scenes/${encodeURIComponent(id)}`, {
+      const res = await sessionFetch(`/api/scenes/${encodeURIComponent(id)}`, {
         method: 'DELETE'
       });
       if (res.ok) {

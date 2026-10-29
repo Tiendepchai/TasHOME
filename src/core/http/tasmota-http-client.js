@@ -1,5 +1,6 @@
 import { HttpError, HTTP_ERROR_TYPES } from './types.js';
 import { TASMOTA_DEFAULTS } from '../config/constants.js';
+import { sessionFetch, isSessionRequired, getSessionEpoch } from './session-fetch.js';
 
 function isPrivateIp(ipOrHost) {
   const host = ipOrHost.split(':')[0].split('/')[0];
@@ -29,18 +30,25 @@ export class TasmotaHttpClient {
 
   async sendCommand(ip, command, auth = null, timeout = this.defaultTimeout) {
     const start = Date.now();
+    const epoch = getSessionEpoch();
     const url = this.buildUrl(ip, command, auth);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await fetch(url, {
+      const response = await sessionFetch(url, {
         method: 'GET',
         signal: controller.signal
       });
 
+      if (typeof window !== 'undefined' && isSessionRequired(response)) {
+        throw new HttpError(HTTP_ERROR_TYPES.SESSION, 'TasHOME session expired', 401);
+      }
       const latency = Date.now() - start;
       const text = await response.text();
+      if (typeof window !== 'undefined' && epoch !== getSessionEpoch()) {
+        throw new HttpError(HTTP_ERROR_TYPES.SESSION, 'Session changed', 401);
+      }
 
       if (response.status === 401) {
         throw new HttpError(HTTP_ERROR_TYPES.AUTH, 'Unauthorized: check device password', 401);

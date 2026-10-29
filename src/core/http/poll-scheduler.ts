@@ -11,9 +11,12 @@ class HttpPollScheduler {
   private paused = false;
   private gpioFetched = new Set<string>();
   private timersFetched = new Set<string>();
+  private generation = 0;
+  private running = false;
 
   start() {
     this.stop();
+    this.running = true;
     if (typeof window !== 'undefined') {
       document.addEventListener('visibilitychange', this.onVisibilityChange);
     }
@@ -24,6 +27,10 @@ class HttpPollScheduler {
   }
 
   stop() {
+    this.running = false;
+    this.generation++;
+    this.gpioFetched.clear();
+    this.timersFetched.clear();
     if (this.bgTimer) clearInterval(this.bgTimer);
     if (this.activeTimer) clearInterval(this.activeTimer);
     this.bgTimer = null;
@@ -34,6 +41,7 @@ class HttpPollScheduler {
   }
 
   startActive(deviceId: string) {
+    if (!this.running) return;
     this.activeDeviceId = deviceId;
     if (this.activeTimer) clearInterval(this.activeTimer);
     this.pollDevice(deviceId);
@@ -51,6 +59,7 @@ class HttpPollScheduler {
   }
 
   async pollNow(deviceId?: string): Promise<void> {
+    if (!this.running) return;
     if (deviceId) {
       await this.pollDevice(deviceId);
     } else {
@@ -74,12 +83,16 @@ class HttpPollScheduler {
   }
 
   private async pollDevice(deviceId: string) {
+    if (!this.running) return;
+    const generation = this.generation;
+    const current = () => this.running && generation === this.generation;
     const { devices, updateDevice, updateDeviceState } = useDeviceStore.getState();
     const dev = devices[deviceId];
     if (!dev || !dev.ipAddress) return;
 
     try {
       const res = await tasmotaHttp.getFullStatus(dev.ipAddress);
+      if (!current()) return;
       if (!res.ok) {
         updateDeviceState(deviceId, { online: false, lastSeen: Date.now() });
         return;
@@ -116,14 +129,14 @@ class HttpPollScheduler {
         this.gpioFetched.add(deviceId);
         tasmotaHttp.sendCommand(dev.ipAddress, 'GPIO 255')
           .then((gpioRes: any) => {
-            if (gpioRes.ok) {
+            if (current() && gpioRes.ok) {
               const gpioConfig = mapGpioToEntities(gpioRes.data);
               if (gpioConfig.length > 0) {
                 updateDeviceState(deviceId, { gpioConfig });
               }
             }
           })
-          .catch(() => this.gpioFetched.delete(deviceId));
+          .catch(() => { if (current()) this.gpioFetched.delete(deviceId); });
       }
 
       if (!this.timersFetched.has(deviceId)) {
@@ -133,6 +146,7 @@ class HttpPollScheduler {
           tasmotaHttp.sendCommand(dev.ipAddress, 'PulseTime2'),
           tasmotaHttp.sendCommand(dev.ipAddress, 'Timers')
         ]).then(([p1, p2, tm]) => {
+          if (!current()) return;
           const patch: Record<string, unknown> = {};
           const pulseTimes: Record<string, unknown> = {};
           if (p1.status === 'fulfilled' && p1.value.ok) {
@@ -152,9 +166,10 @@ class HttpPollScheduler {
           if (Object.keys(patch).length > 0) {
             updateDeviceState(deviceId, patch);
           }
-        }).catch(() => this.timersFetched.delete(deviceId));
+        }).catch(() => { if (current()) this.timersFetched.delete(deviceId); });
       }
     } catch (err) {
+      if (!current() || (err as { type?: string })?.type === 'session') return;
       updateDeviceState(deviceId, { online: false, lastSeen: Date.now() });
     }
   }

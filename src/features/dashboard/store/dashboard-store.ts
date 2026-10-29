@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { sessionFetch, getSessionEpoch, isSessionActive } from '@/core/http/session-fetch';
 import type { DashboardLayout, WidgetInstance } from '@/features/widgets/registry/widget-types';
 
 interface DashboardState {
@@ -32,10 +33,12 @@ const DEFAULT_LAYOUT: DashboardLayout = {
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function saveDashboardsToServer(dashboards: DashboardLayout[]) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !isSessionActive()) return;
   if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+  const epoch = getSessionEpoch();
   saveDebounceTimer = setTimeout(() => {
-    fetch('/api/dashboards', {
+    if (!isSessionActive() || epoch !== getSessionEpoch()) return;
+    sessionFetch('/api/dashboards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dashboards)
@@ -50,9 +53,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   fetchDashboards: async () => {
     if (typeof window === 'undefined') return;
     try {
-      const res = await fetch('/api/dashboards');
+      const epoch = getSessionEpoch();
+      const res = await sessionFetch('/api/dashboards');
       if (res.ok) {
         const data = await res.json();
+        if (epoch !== getSessionEpoch()) return;
         if (Array.isArray(data) && data.length > 0) {
           const sanitized = data.map((d: DashboardLayout) => ({
             ...d,

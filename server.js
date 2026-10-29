@@ -21,6 +21,7 @@ import {
   checkRateLimit,
   recordLoginAttempt
 } from './src/core/auth/index.js';
+import { getRetryAfter } from './src/core/auth/rate-limit.js';
 import { renderDashboardHtml } from './src/features/dashboard/views/dashboard-view.js';
 import { renderLoginHtml } from './src/features/dashboard/views/login-view.js';
 
@@ -153,13 +154,14 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/auth/login') {
     const rateErr = checkRateLimit();
     if (rateErr) {
-      res.writeHead(429, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: false, error: rateErr }));
+      const retryAfter = getRetryAfter();
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) });
+      return res.end(JSON.stringify({ success: false, error: rateErr, code: 'RATE_LIMITED', retryAfter }));
     }
 
-    const { pin } = await readBodyJSON(req);
-    const code = String(pin || '').trim();
-    const isTotp = verifyTOTP(code);
+    const body = await readBodyJSON(req);
+    const pin = body?.pin;
+    const isTotp = typeof pin === 'string' && /^[0-9]{6}$/.test(pin) && verifyTOTP(pin);
 
     if (isTotp) {
       recordLoginAttempt(true);
@@ -172,7 +174,7 @@ const server = http.createServer(async (req, res) => {
     } else {
       recordLoginAttempt(false);
       res.writeHead(401, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: false, error: 'Mã 2FA không đúng' }));
+      return res.end(JSON.stringify({ success: false, error: 'Mã 2FA không đúng', code: 'INVALID_TOTP', retryAfter: getRetryAfter() }));
     }
   }
 
@@ -220,8 +222,8 @@ const server = http.createServer(async (req, res) => {
   const proxyMatch = url.pathname.match(/^\/device-proxy\/([^/?]+)(\/[^?]*)?$/);
   if (proxyMatch) {
     if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Unauthorized' }));
+      res.writeHead(401, { 'Content-Type': 'application/json', 'X-TasHOME-Auth': 'required' });
+      return res.end(JSON.stringify({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }));
     }
     const deviceIp = proxyMatch[1];
     const targetPath = (proxyMatch[2] || '/') + url.search;
@@ -253,8 +255,13 @@ const server = http.createServer(async (req, res) => {
 
   // PROTECTED ENDPOINTS (Requires valid 24h HMAC session token)
   if (!isAuthenticated(req)) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Unauthorized' }));
+    res.writeHead(401, { 'Content-Type': 'application/json', 'X-TasHOME-Auth': 'required' });
+    return res.end(JSON.stringify({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/auth/session') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify({ authenticated: true }));
   }
 
   // 4. 2FA Management API

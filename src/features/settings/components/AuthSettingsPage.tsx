@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Key, ShieldAlert, Copy, Check, RefreshCw, Clock } from 'lucide-react';
 import { useTranslation } from '@/core/i18n';
+import { sessionFetch, getSessionEpoch } from '@/core/http/session-fetch';
 
 export const AuthSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -16,10 +17,11 @@ export const AuthSettingsPage: React.FC = () => {
 
   const fetchAuthInfo = async () => {
     try {
-      const res = await fetch('/api/auth/2fa');
+      const epoch = getSessionEpoch();
+      const res = await sessionFetch('/api/auth/2fa');
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        if (epoch === getSessionEpoch()) setData(json);
       }
     } catch {}
   };
@@ -44,7 +46,7 @@ export const AuthSettingsPage: React.FC = () => {
     }
     setRevoking(true);
     try {
-      const res = await fetch('/api/auth/revoke-key', { method: 'POST' });
+      const res = await sessionFetch('/api/auth/revoke-key', { method: 'POST' });
       if (res.ok) {
         await fetchAuthInfo();
       }

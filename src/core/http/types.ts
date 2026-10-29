@@ -1,4 +1,4 @@
-export type HttpErrorType = 'timeout' | 'cors' | 'auth' | 'network' | 'parse' | 'server';
+export type HttpErrorType = 'timeout' | 'cors' | 'auth' | 'session' | 'network' | 'parse' | 'server';
 
 export interface HttpAuth {
   username?: string;

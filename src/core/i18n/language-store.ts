@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { sessionFetch, getSessionEpoch, isSessionActive } from '@/core/http/session-fetch';
 import type { Language } from './types';
 import { translations, type TranslationKey } from './translations';
 
@@ -37,8 +38,9 @@ export const useLanguageStore = create<LanguageState>((set, get) => ({
         localStorage.setItem(STORAGE_KEY, lang);
       } catch {}
 
-      // Synchronize with server settings atomically
-      fetch('/api/settings', {
+      // Keep the login language local until a session is authenticated.
+      if (!isSessionActive()) return;
+      sessionFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: lang })
@@ -49,9 +51,11 @@ export const useLanguageStore = create<LanguageState>((set, get) => ({
   fetchSettings: async () => {
     if (typeof window === 'undefined') return;
     try {
-      const res = await fetch('/api/settings');
+      const epoch = getSessionEpoch();
+      const res = await sessionFetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
+        if (epoch !== getSessionEpoch()) return;
         if (data.language === 'vi' || data.language === 'en' || data.language === 'de') {
           set({ language: data.language });
           try {
